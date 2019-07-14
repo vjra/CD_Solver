@@ -1,2 +1,0 @@
-experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data
-Test_version_Unitsquare_alpha_1_epsilon_0_delta_0,"(25.140120759245782, 0.0)",1,0,0,0.01,0.04,2,1,Unit square,"(<ngsolve.fem.CoefficientFunction object at 0x7f53181944c0>, 0)"

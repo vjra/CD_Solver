@@ -27,9 +27,9 @@ class experiment():
         self.gfuL2 = GridFunction(l2)
         self.gfucalc = GridFunction(self.FEspace, name = "u_h")
 
-    def set_initial_data(self,ini_data):
+    def set_initial_data(self,ini_data,ini_data_str='No string was entered'):
         self.uvold = GridFunction(self.FEspace)
-        self.ini_data_str = '{}'.format(ini_data)
+        self.ini_data_str = '{}'.format(ini_data_str)
         self.uvold.components[0].Set(CoefficientFunction(ini_data[0]))
         self.uvold.components[1].Set(CoefficientFunction(ini_data[1]))
 
@@ -94,12 +94,14 @@ class experiment():
         print("total mass = ", mass)
         if visualoutput_solver == True:
             gfucalc.vec.data = uvold.vec
-            Draw(gfucalc.components[0])
-            Draw(gfucalc.components[1])
-            visoptions.scalfunction="u_h:1"
+
+            Draw(gfucalc.components[0],mesh, name = 'rho')
+            Draw(gfucalc.components[1],mesh, 'c')
+            Redraw()
+            # visoptions.scalfunction="rho"
             visoptions.vecfunction = "None"
             visoptions.scaledeform1 = 0.001
-            visoptions.deformation = 0
+            visoptions.deformation = 1
         else:
             gfucalc.vec.data = uvold.vec
         time_list_dict = {'dt': dt, 'timestep': 0,'filename':simulations_folder+experiment_full_name+'/'+experiment_full_name+'_time_0',\
@@ -110,20 +112,22 @@ class experiment():
             listwriter.writerow(time_list_dict)
 
 
-        sleep(2)
+        sleep(1)
         log_file_name = log_file_creator(simulations_folder,experiment_full_name)
-        paramdicto = paramlist(path,experiment_full_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str)
-        # SetNumThreads(8)
-        # sleep(1)
-        # gfucalc,endtime =run(experiment_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramdicto,startingtimestep,visualoutput_solver)
-        # print('Expri {} done'.format(expri_number))
+        paramlisto = paramlist(path,experiment_full_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str)
+        SetNumThreads(8)
+        sleep(1)
+        self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver)
+        print('Experiment: {}, done'.format(experiment_full_name))
 
 ini_data = (8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)
+ini_data_str = '(8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)'
 experiment1 = experiment('Test_version',1,0,0,10**(-2),1,0.04,2,'Unit square')
-# A = (1,-experiment1.u[0],experiment1.delta,1)
-A = (1,0,0,1)
+
+# A = (1,0,0,1)
 experiment1.meshgeneration_n_spaces()
-experiment1.set_initial_data(ini_data)
+A = (1,-experiment1.u[0],experiment1.expri_data['delta'],1)
+experiment1.set_initial_data(ini_data,ini_data_str)
 print(experiment1.u)
 experiment1.weak_formulation(A)
 experiment1.run_experiment()

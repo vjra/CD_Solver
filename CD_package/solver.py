@@ -108,15 +108,15 @@ def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,
     return paramdict
 
 
-def time_list_writer(experiment_name,dt,timestep,filename,linfmin_l2,linfmax_l2,mass):
+def time_list_writer(path,experiment_full_name,dt,timestep,filename,linfmin_l2,linfmax_l2,mass):
     time_list_dict = {'dt': dt, 'timestep': timestep,'filename':filename,'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
-    with open(filedir+'{}/time_list.csv'.format(experiment_name),'a') as csvfile:
+    with open(path+'{}/time_list.csv'.format(experiment_full_name),'a') as csvfile:
         fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
         listwriter = csv.DictWriter(csvfile,fieldnames = fieldnames)
         listwriter.writerow(time_list_dict)
 
 
-def run(experiment_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver):
+def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver):
     initialmass = (Integrate(uvold.components[0],mesh),Integrate(uvold.components[1],mesh))
     with TaskManager():
         for i in range(startingtimestep,nsteps):
@@ -136,14 +136,14 @@ def run(experiment_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,starting
                 modulo_constant = 1000
 
             if i % modulo_constant == 0:
-                gfucalc.Save(filedir+'{}/{}_time_{}'.format(experiment_name,experiment_name,str(i*dt)))
-                with open(filedir+'{}/last_time.txt'.format(experiment_name),"w") as f:
+                gfucalc.Save(path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt)))
+                with open(path+'{}/last_time.txt'.format(experiment_full_name),"w") as f:
                     f.write(str(i*dt))
-                with open(filedir+'{}/last_time_before.txt'.format(experiment_name),"w") as f:
+                with open(path+'{}/last_time_before.txt'.format(experiment_full_name),"w") as f:
                     f.write(str((i-modulo_constant)*dt))
-                filename_saved = filedir+'{}/{}_time_{}'.format(experiment_name,experiment_name,str(i*dt))
-                print(experiment_name,dt,i,filename_saved)
-                time_list_writer(experiment_name,dt,i,filename_saved,linfmin_l2,linfmax_l2,mass)
+                filename_saved = path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt))
+                print(experiment_full_name,dt,i,filename_saved)
+                time_list_writer(path,experiment_full_name,dt,i,filename_saved,linfmin_l2,linfmax_l2,mass)
 
 
             if  linfmin_l2 < 0:
@@ -154,11 +154,11 @@ def run(experiment_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,starting
             if mass[0] > initialmass[0]*2  or linfmin_l2 <0:
                 endtime = i*dt
                 errormess(mass)
-                with open(filedir+'{}/errormessage.txt'.format(experiment_name),"w") as f:
+                with open(path+'{}/errormessage.txt'.format(experiment_full_name),"w") as f:
                     f.write('''Error at timestep {}:\nMass {}
                                \n min: {} \n max: {}'''.format(i,mass,linfmin_l2,linfmax_l2))
 
-                with open(filedir+'{}/error_endtime.txt'.format(experiment_name),"w") as f:
+                with open(path+'{}/error_endtime.txt'.format(experiment_full_name),"w") as f:
                     f.write(str(int(i)))
 
                 break
@@ -170,7 +170,7 @@ def run(experiment_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,starting
             print("Time: {}, time step: {} of {}".format(str(dt*i),i,nsteps))
             endtime = nsteps*dt
 
-        with open(filedir+'{}/parameter.txt'.format(experiment_name),"w") as f:
+        with open(path+'{}/parameter.txt'.format(experiment_full_name),"w") as f:
             for param in paramlisto:
                 f.write(str(param) + ': '+str(paramlisto[param])+'\n')
 
