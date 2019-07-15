@@ -1,5 +1,6 @@
 from solver import *
-
+from ngsolve import *
+import netgen.gui
 # Solve (u_t,eps*v_t) = div(A*(u,v)) + (0,-u[1]+u[0]^alpha)
 
 ############################### global variables #################################
@@ -7,12 +8,23 @@ from solver import *
 filedir ='.'
 simulations_folder = '/simulations_data/'
 path = filedir+simulations_folder
-visualoutput_solver = True
+
+
+
 class experiment():
-    def __init__(self,expri_name,alpha,delta,epsilon,dt,T,meshsize,order,geometry):
+    def __init__(self,expri_name,alpha,delta,epsilon,dt,T,meshsize,order,geometry,visualoutput_solver):
         self.expri_data = {'expri_name': expri_name,'alpha': alpha, 'delta': delta, \
                            'epsilon': epsilon, 'dt': dt,'T': T, 'meshsize': meshsize,'order':order,'geometry': geometry}
         self.experiment_full_name = expri_name+'_{}_alpha_{}_epsilon_{}_delta_{}'.format(geometry.replace(" ", ""),alpha,epsilon,delta)
+        self.visualoutput_solver = visualoutput_solver
+        self.simulations_folder = simulations_folder
+        self.path = path
+        self.filedir = filedir
+
+    def set_file_structure(self,simulations_folder,path,filedir):
+        self.simulations_folder = simulations_folder
+        self.path = path
+        self.filedir = filedir
 
     def meshgeneration_n_spaces(self):
         meshsize = self.expri_data['meshsize']
@@ -65,10 +77,15 @@ class experiment():
         meshsize = self.expri_data['meshsize']
         order = self.expri_data['order']
         geometry = self.expri_data['geometry']
+        visualoutput_solver = self.visualoutput_solver
         if visualoutput_solver == True:
             import netgen.gui
 
-        print(path+experiment_full_name)
+        simulations_folder = self.simulations_folder
+        path = self.path
+        filedir = self.filedir
+
+        print('simulations saved at: '+path+experiment_full_name)
         try:
             os.mkdir(path+experiment_full_name)
         except Exception as FileExistsError:
@@ -90,18 +107,17 @@ class experiment():
         linfmin_l2 = min(gfuL2.vec)
         linfmax_l2 = max(gfuL2.vec)
         nsteps = int(floor(T/dt))
-        print(nsteps)
-        print("total mass = ", mass)
+        print('Number of time steps: ', nsteps)
+        print('Total mass of initial data: ', mass)
         if visualoutput_solver == True:
             gfucalc.vec.data = uvold.vec
-
-            Draw(gfucalc.components[0],mesh, name = 'rho')
             Draw(gfucalc.components[1],mesh, 'c')
-            Redraw()
+            Draw(gfucalc.components[0],mesh, name = 'rho')
             # visoptions.scalfunction="rho"
-            visoptions.vecfunction = "None"
-            visoptions.scaledeform1 = 0.001
-            visoptions.deformation = 1
+            # visoptions.vecfunction = "None"
+            # visoptions.scaledeform1 = 0.001
+            # visoptions.deformation = 1
+            # Redraw(True)
         else:
             gfucalc.vec.data = uvold.vec
         time_list_dict = {'dt': dt, 'timestep': 0,'filename':simulations_folder+experiment_full_name+'/'+experiment_full_name+'_time_0',\
@@ -119,15 +135,3 @@ class experiment():
         sleep(1)
         self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver)
         print('Experiment: {}, done'.format(experiment_full_name))
-
-ini_data = (8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)
-ini_data_str = '(8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)'
-experiment1 = experiment('Test_version',1,0,0,10**(-2),1,0.04,2,'Unit square')
-
-# A = (1,0,0,1)
-experiment1.meshgeneration_n_spaces()
-A = (1,-experiment1.u[0],experiment1.expri_data['delta'],1)
-experiment1.set_initial_data(ini_data,ini_data_str)
-print(experiment1.u)
-experiment1.weak_formulation(A)
-experiment1.run_experiment()

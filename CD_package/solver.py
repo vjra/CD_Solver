@@ -12,6 +12,8 @@ from time import sleep
 from datetime import datetime
 from pathlib import Path
 import fnmatch
+
+
 # import pdb
 
 
@@ -28,7 +30,8 @@ def folder_checker(experiment_name,path):
             else:
                 cont_switch = True
         except OSError as e:
-            print ("Error: %s - %s." % (e.filename, e.strerror))
+            pass
+            # print ("Error: %s - %s." % (e.filename, e.strerror))
     return cont_switch
 
 
@@ -51,6 +54,8 @@ def continuation_time(experiment_name,simulations_folder,V,dt):
 
     return old_timestepping_last_time, uvold
 
+############################### Create Logfile #################################
+
 def log_file_creator(foldername,experiment_list):
     today = datetime.now()
     today_string = '{}_{}_{}_{}'.format(today.year,today.month,today.day,today.hour)
@@ -64,13 +69,6 @@ def log_file_creator(foldername,experiment_list):
         pass
 
     return logfilename
-
-
-############################### Create Logfile #################################
-
-
-
-
 
 
 def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
@@ -89,10 +87,6 @@ def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
         print ("<A u",it,", A u",it,">_{-1}^0.5 = ", stopcritval)
         if stopcritval < tol:
             break
-
-def errormess(mass):
-    print("ERROR: Minimumvalue exploading or mass negative")
-    print("Mass: {}".format(mass))
 
 
 def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str):
@@ -122,28 +116,27 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
         for i in range(startingtimestep,nsteps):
             atime = time()
             uvold.vec.data = gfucalc.vec
-            # uvold.Set(gfucalc)
-            print('inside')
             SimpleNewtonSolve(gfucalc,a)
             mass = (Integrate(gfucalc.components[0],mesh),Integrate(gfucalc.components[1],mesh))
             gfuL2.Set(gfucalc.components[0])
             linfmin_l2 = min(gfuL2.vec)
             linfmax_l2 = max(gfuL2.vec)
-            modulo_constant = 1
-            if dt < 1e-5:
-                modulo_constant = 100
-            elif dt < 1e-9:
-                modulo_constant = 1000
+            # modulo_constant = 1
+            # if dt < 1e-5:
+            #     modulo_constant = 100
+            # elif dt < 1e-9:
+            #     modulo_constant = 1000
 
-            if i % modulo_constant == 0:
-                gfucalc.Save(path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt)))
-                with open(path+'{}/last_time.txt'.format(experiment_full_name),"w") as f:
-                    f.write(str(i*dt))
-                with open(path+'{}/last_time_before.txt'.format(experiment_full_name),"w") as f:
-                    f.write(str((i-modulo_constant)*dt))
-                filename_saved = path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt))
-                print(experiment_full_name,dt,i,filename_saved)
-                time_list_writer(path,experiment_full_name,dt,i,filename_saved,linfmin_l2,linfmax_l2,mass)
+            # if i % modulo_constant == 0:
+            modulo_constant = 0
+            gfucalc.Save(path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt)))
+            with open(path+'{}/last_time.txt'.format(experiment_full_name),"w") as f:
+                f.write(str(i*dt))
+            with open(path+'{}/last_time_before.txt'.format(experiment_full_name),"w") as f:
+                f.write(str((i-modulo_constant)*dt))
+            filename_saved = path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt))
+            print('dt: ',dt,'filename:',filename_saved)
+            time_list_writer(path,experiment_full_name,dt,i,filename_saved,linfmin_l2,linfmax_l2,mass)
 
 
             if  linfmin_l2 < 0:
@@ -163,6 +156,10 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
 
                 break
             if visualoutput_solver == True:
+                # visoptions.scalfunction="rho"
+                # visoptions.vecfunction = "None"
+                # visoptions.scaledeform1 = 0.001
+                # visoptions.deformation = 1
                 Redraw(True)
 
             btime = time()
