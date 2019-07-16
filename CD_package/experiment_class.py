@@ -135,3 +135,5 @@ class experiment():
         sleep(1)
         self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver)
         print('Experiment: {}, done'.format(experiment_full_name))
+
+    def plot_and_more(self):
