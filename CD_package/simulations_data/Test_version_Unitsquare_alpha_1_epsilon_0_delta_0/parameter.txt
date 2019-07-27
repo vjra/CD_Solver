@@ -1,0 +1,11 @@
+experiment_name: Test_version_Unitsquare_alpha_1_epsilon_0_delta_0
+mass: (25.140120759245782, 0.0)
+alpha: 1
+epsilon: 0
+delta: 0
+dt: 0.01
+meshsize: 0.04
+order: 2
+T: 0.05
+geometry: Unit square
+ini_data: (8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)

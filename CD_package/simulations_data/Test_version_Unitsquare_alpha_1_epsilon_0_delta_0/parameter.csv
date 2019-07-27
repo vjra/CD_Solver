@@ -1,0 +1,2 @@
+experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data
+Test_version_Unitsquare_alpha_1_epsilon_0_delta_0,"(25.140120759245782, 0.0)",1,0,0,0.01,0.04,2,0.05,Unit square,"(8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)"
