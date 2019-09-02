@@ -3,6 +3,9 @@
 This will be a object-oriented PDE-solver, that allows one to solve a coupled nonlinear cross-diffusion system using the
 ngsolve (https://ngsolve.org/).
 
-## Install
+## Installation
 
->> git clone https://github.com/vjra/CD_Solver.git
+```sh
+$ git clone https://github.com/vjra/CD_Solver.git
+$ cd CD_package
+```
