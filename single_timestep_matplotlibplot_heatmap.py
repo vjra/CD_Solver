@@ -1,6 +1,7 @@
 from ngsolve import *
 from netgen.geom2d import SplineGeometry
-from ks_solver4_new_many_v2 import *
+# from ks_solver4_new_many_v2 import *
+from ks_solver5_v1 import *
 import csv
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -10,16 +11,16 @@ from sys import argv
 from matplotlib.tri import Triangulation, TriAnalyzer, UniformTriRefiner
 
 
-netgenswitch = False
+netgenswitch = True
 timestep_to_plot = argv[1:]
-experiment_name = 'LIGHT_Expri_NOEV_refined_200_alpha_1_epsilon_1_delta_0.0003'
+experiment_name = 'RECTMASS_Expri_HD_705_alpha_1_epsilon_1_delta_0.001'
 # experiment_name = 'DIA_Expri_HD_102_alpha_1_epsilon_1_delta_0.005'
 # experiment_name = 'DIA_Expri_HD_103_alpha_1_epsilon_1_delta_0.001'
 # experiment_name = 'DIA_Expri_HD_503_alpha_1_epsilon_1_delta_0.0025'
 # experiment_name = 'DIA_Expri_HD_104_alpha_1_epsilon_1_delta_0.0005'
-mesh_switch = 'rect_edgy'
+mesh_switch = 'rect_hd_ref'
 # 0 is cell density, concentration of chemoattractant is 1
-density_concentration_switch = 1
+density_concentration_switch = 0
 # path = '/mnt/data/simulations/paper/'
 path = './'
 # path = '/mnt/data/simulations/tba/'
@@ -44,6 +45,8 @@ elif mesh_switch == 'rect':
     pathdirect = path+'simulations/rect/{}/'.format(experiment_name)
 elif mesh_switch == 'circ_hd':
     pathdirect = path+'simulations/circ_hd/{}/'.format(experiment_name)
+elif mesh_switch == 'rect_hd_ref':
+    pathdirect = path+'simulations/rect_hd_ref/{}/'.format(experiment_name)
 elif mesh_switch == 'rect_edgy':
     pathdirect = path+'simulations/rect_edgy/{}/'.format(experiment_name)
 else:
@@ -75,6 +78,8 @@ elif mesh_switch == 'rect_edgy':
     mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_rec_rect_edgy(meshsize,order,length)
 elif mesh_switch == 'circ_hd':
     mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_circle_hd(meshsize,order,midpointc,radius)
+elif mesh_switch == 'rect_hd_ref':
+    mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_rect_hd_c_refine(meshsize,order)
 else:
     mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_rec(meshsize,order,midpointc,radius)
 
@@ -137,12 +142,12 @@ for i in timestep_to_plot:
     # surf.set_edgecolor('black')
     # x = surf.get_edgecolors()
     # print(x)
-    if density_concentration_switch == 0:
-        plt.savefig('/mnt/data/simulations/DISS/paper/Experiments_Linftyplots/eps/HM_{}_time_{}.eps'.format(experiment_name,round(float(i),5)))
-    elif density_concentration_switch == 1:
-        plt.savefig('/mnt/data/simulations/DISS/paper/Experiments_Linftyplots/eps/HM_c_{}_time_{}.eps'.format(experiment_name,round(float(i),5)))
-    else:
-        print('Choose cell or chemoattractant density')
+    # if density_concentration_switch == 0:
+    #     plt.savefig('/mnt/data/simulations/DISS/paper/Experiments_Linftyplots/eps/HM_{}_time_{}.eps'.format(experiment_name,round(float(i),5)))
+    # elif density_concentration_switch == 1:
+    #     plt.savefig('/mnt/data/simulations/DISS/paper/Experiments_Linftyplots/eps/HM_c_{}_time_{}.eps'.format(experiment_name,round(float(i),5)))
+    # else:
+    #     print('Choose cell or chemoattractant density')
 
     print(min(z))
     print(max(z))

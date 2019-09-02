@@ -3,33 +3,33 @@ from netgen.geom2d import SplineGeometry
 # # For experiment 3, hitt 12 and 13:
 # from ks_solver4_new import *
 # For experiment 3, hitt 14:
-from ks_solver4_new_special import *
+# from ks_solver4_new_special import *
 # For experiment 3:
 # from ks_solver4_new_many import *
 # For experiment 4:
 # from ks_solver5_v1 import *
 # For experiment 5:
 # from ks_solver4_new_many_v2 import *
-
+from ks_solver5_v1 import *
 import csv
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 from sys import argv
+import netgen.gui
 
 
-
-netgenswitch = False
+netgenswitch = True
 timestep_to_plot = argv[1:]
-experiment_name = 'Hitt_Expri_14_alpha_1_epsilon_1_delta_0.0001'
+experiment_name = 'RECTMASS_Expri_HD_705_alpha_1_epsilon_1_delta_0.001'
 # experiment_name = 'DIA_Expri_HD_102_alpha_1_epsilon_1_delta_0.005'
 # experiment_name = 'DIA_Expri_HD_103_alpha_1_epsilon_1_delta_0.001'
 # experiment_name = 'DIA_Expri_HD_503_alpha_1_epsilon_1_delta_0.0025'
 # experiment_name = 'DIA_Expri_HD_104_alpha_1_epsilon_1_delta_0.0005'
-mesh_switch = 'edgy'
-path = '/mnt/data/simulations/paper/'
-# path = './'
+mesh_switch = 'rect_hd_ref'
+# path = '/mnt/data/simulations/paper/'
+path = './'
 # path = '/mnt/data/simulations/tba/'
 # path = '/mnt/data/simulations/paper/'
 def opencsvfile(name,pathdirect):
@@ -54,6 +54,10 @@ elif mesh_switch == 'circ_hd':
     pathdirect = path+'simulations/circ_hd/{}/'.format(experiment_name)
 elif mesh_switch == 'rect_edgy':
     pathdirect = path+'simulations/rect_edgy/{}/'.format(experiment_name)
+elif mesh_switch == 'rect_hd_ref':
+    pathdirect = path+'simulations/rect_hd_ref/{}/'.format(experiment_name)
+elif mesh_switch == 'rect_hd':
+    pathdirect = path+'simulations/rect_hd/{}/'.format(experiment_name)
 else:
     pathdirect = path+'simulations/none/{}/'.format(experiment_name)
 
@@ -63,7 +67,6 @@ dt = float(paramdict['dt'])
 alpha = float(paramdict['alpha'])
 delta = float(paramdict['delta'])
 meshsize = float(paramdict['meshsize'])
-geometry = paramdict['geometry']
 order = int(paramdict['order'])
 midpointc = (0,0)
 ############################ATTENTION RADIUS###################################
@@ -83,6 +86,10 @@ elif mesh_switch == 'rect_edgy':
     mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_rec_rect_edgy(meshsize,order,length)
 elif mesh_switch == 'circ_hd':
     mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_circle_hd(meshsize,order,midpointc,radius)
+elif mesh_switch == 'rect_hd_ref':
+    mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_rect_hd_c_refine(meshsize,order)
+elif mesh_switch == 'rect_hd':
+    mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_rect_hd_c(meshsize,order)
 else:
     mesh,V,u,v,gfuL2 = meshgeneration_n_spaces_rec(meshsize,order,midpointc,radius)
 
@@ -94,7 +101,7 @@ for i in timestep_to_plot:
     print(pathdirect+'{}_time_{}'.format(experiment_name,i))
     gfucalc.Load(pathdirect+'{}_time_{}'.format(experiment_name,i))
     if netgenswitch == True:
-        import netgen.gui
+
         Draw(gfucalc.components[0],mesh,'density')
         visoptions.scalfunction="density"
         visoptions.vecfunction = "None"
@@ -141,7 +148,7 @@ for i in timestep_to_plot:
     # surf.set_edgecolor('black')
     # x = surf.get_edgecolors()
     # print(x)
-    plt.savefig('/mnt/data/simulations/DISS/paper/Experiments_Linftyplots/eps/{}_time_{}.eps'.format(experiment_name,round(float(i),5)))
+    # plt.savefig('/mnt/data/simulations/DISS/paper/Experiments_Linftyplots/eps/{}_time_{}.eps'.format(experiment_name,round(float(i),5)))
     print(min(z))
     print(max(z))
     print(linfmin_l2)

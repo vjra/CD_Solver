@@ -17,8 +17,10 @@ visualoutput_solver = True
 number_of_mesh_elements_edgy = 7200
 #number_of_mesh_elements_center = 2800 # old refinement radius befor delta radius test
 number_of_mesh_elements_center = 9200
+number_of_mesh_elements_rect_edgy = 12200
 refinement_radius = 0.9
 refinement_radius_center = 0.1
+refinement_radius_rect = 0.03
 
 def meshgeneration_n_spaces(meshsize,polyorder):
     mesh = Mesh (unit_square.GenerateMesh(maxh=meshsize))
@@ -37,6 +39,55 @@ def meshgeneration_n_spaces_rec(meshsize,polyorder,midpoint,radius):
     l2 = L2(mesh, order=0)
     gfuL2 = GridFunction(l2)
     return mesh,V,u,v,gfuL2
+
+
+def meshgeneration_n_spaces_rect_hd_c(meshsize,polyorder):
+    geo = SplineGeometry()
+    geo.AddRectangle((0, 0), (1, 1), bcs = ("wall", "outlet", "wall", "inlet"))
+    mesh = Mesh (geo.GenerateMesh(maxh=meshsize))
+    X = H1(mesh, order=polyorder)
+    Q = H1(mesh, order=polyorder, dirichlet=("wall", "outlet", "wall", "inlet"))
+    V = FESpace([X,Q])
+    u = V.TrialFunction()
+    v = V.TestFunction()
+    l2 = L2(mesh, order=0)
+    gfuL2 = GridFunction(l2)
+    return mesh,V,u,v,gfuL2
+
+def meshgeneration_n_spaces_rect_hd_c_refine(meshsize,polyorder):
+    geo = SplineGeometry()
+    geo.AddRectangle((0, 0), (1, 1), bcs = ("wall", "outlet", "wall", "inlet"))
+    mesh = Mesh (geo.GenerateMesh(maxh=meshsize))
+    bl = refinement_radius_rect
+    def Mark():
+        for el in mesh.Elements():
+            mesh.SetRefinementFlag(el, False)
+        for el in mesh.Elements(BND):
+            mesh.SetRefinementFlag(el, False)
+        for el in mesh.Elements():
+            for v in el.vertices:
+                pnt = mesh.ngmesh[PointId(v.nr+1)]
+                if (pnt[0]<bl or pnt[1]<bl or pnt[0]>1-bl or pnt[1]>1-bl  ):
+                    mesh.SetRefinementFlag(el, True)
+
+    while mesh.ne < number_of_mesh_elements_rect_edgy:
+        print(mesh.ne)
+        Mark()
+        mesh.Refine()
+        print(mesh.nv, mesh.ne)
+
+    X = H1(mesh, order=polyorder)
+    Q = H1(mesh, order=polyorder, dirichlet=("wall", "outlet", "wall", "inlet"))
+    V = FESpace([X,Q])
+    u = V.TrialFunction()
+    v = V.TestFunction()
+    l2 = L2(mesh, order=0)
+    gfuL2 = GridFunction(l2)
+    return mesh,V,u,v,gfuL2
+
+
+
+
 
 
 def meshgeneration_n_spaces_circle_hd(meshsize,polyorder,midpoint,radius):
@@ -201,6 +252,26 @@ def initial_data_radial_two_baselevel(V,xi,xi2,mass,mass2,midpointr,midpointc):
     uvold.components[1].Set(CoefficientFunction(0))
     return uvold
 
+
+def initial_data_random_many(mass1,V,xi,n_of_drops):
+    uvold = GridFunction(V)
+    random_vec = np.random.rand(n_of_drops,2)
+    scaled_random_vec = 0.1 + (random_vec*(0.9-0.1))
+    multi_bump =CoefficientFunction(0)
+    for point in scaled_random_vec:
+        if point[0] < 0.35 and point[1] < 0.35:
+            multi_bump = multi_bump + CoefficientFunction((np.random.random_integers(1,10)*mass1/(pi*xi)*exp(-1/xi*(x-point[0])**2-1/xi*(y-point[1])**2)))
+        elif point[0] > 0.5 and point[1] > 0.5:
+            multi_bump = multi_bump + CoefficientFunction((np.random.random_integers(1,10)*mass1/(pi*xi)*exp(-1/xi*(x-point[0])**2-1/xi*(y-point[1])**2)))
+        else:
+            # multi_bump = multi_bump + CoefficientFunction((np.random.random_integers(1,10)*mass1/(pi*xi)*exp(-1/xi*(x-point[0])**2-1/xi*(y-point[1])**2)))
+            pass
+    uvold.components[0].Set(multi_bump)
+    #uvold.components[1].Set(CoefficientFunction(0))
+    uvold.components[1].Set(multi_bump/100)
+    return uvold
+
+
 def initial_data_many(mass1,V,midpointr,xi,mass2=0,mass3=0):
     uvold = GridFunction(V)
     uvold.Set(
@@ -258,15 +329,15 @@ def errormess(mass):
     print("Mass: {}".format(mass))
 
 
-def paramlist(experiment_name,xi,xi2,mass,mass2,alpha,epsilon,delta,dt,meshsize,order,T,geometry,midpointr,midpointc):
-    paramdict = {'experiment_name': experiment_name,'xi': xi,'xi2': xi2,'mass': mass,'mass2': mass2,'alpha': alpha, 'epsilon': epsilon, 'delta': delta, 'dt': dt,'meshsize': meshsize,'order': order, 'T': T, 'geometry': geometry,'midpointr': midpointr, 'midpointc':midpointc}
+def paramlist(experiment_name,xi,mass,n_of_drops,alpha,epsilon,delta,dt,meshsize,order,T,geometry,midpointr,midpointc):
+    paramdict = {'experiment_name': experiment_name,'xi': xi,'mass': mass, 'n_of_drops': n_of_drops,'alpha': alpha, 'epsilon': epsilon, 'delta': delta, 'dt': dt,'meshsize': meshsize,'order': order, 'T': T, 'geometry': geometry,'midpointr': midpointr, 'midpointc':midpointc}
     try:
         os.mkdir(filedir+experiment_name)
     except Exception as FileExistsError:
         pass
 
     with open(filedir+'{}/parameter.csv'.format(experiment_name),'w') as csvfile:
-        fieldnames = ['experiment_name','xi','xi2','mass','mass2','alpha','epsilon','delta','dt','meshsize','order','T','geometry','midpointr','midpointc']
+        fieldnames = ['experiment_name','xi','mass','n_of_drops','alpha','epsilon','delta','dt','meshsize','order','T','geometry','midpointr','midpointc']
         paramwriter = csv.DictWriter(csvfile, fieldnames = fieldnames)
         paramwriter.writeheader()
         paramwriter.writerow(paramdict)
