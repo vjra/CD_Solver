@@ -276,7 +276,6 @@ class experiment():
         plt.close(fig)
 
     def plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True, matplotlib_export = False, vtk_export = False, scale_factor = 1, plot_modulo = 1,deform_param = 1):
-
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
@@ -330,44 +329,44 @@ class experiment():
             linfmin_l2 = min(gfuL2.vec)
             linfmax_l2 = max(gfuL2.vec)
 
-        if matplotlib_export == True:
-            try:
-                os.mkdir(path_to_expri+'plots')
-            except Exception as FileExistsError:
-                pass
-            # store vertex coorinates in x/y and function value in z array
-            for v in mesh.vertices:
-                p = v.point
-                x.append(p[0])
-                y.append(p[1])
-                z.append(gfucalc.components[sol_component].vec[v.nr])
-
-
-            # triangulation
-            for e in mesh.Elements():
-                trigs.append( [v.nr for v in e.vertices] )
-
-            fig = plt.figure()
-            ax = fig.gca(projection='3d')
-            ax.grid(True)
-            fig.patch.set_facecolor('white')
-            surf = ax.plot_trisurf(x, y, z, triangles=trigs, antialiased=False, cmap=cm.coolwarm, linewidth=0, shade=False)
-            # Activate for rectangle experiment!!
-            # ax.set_yticks([0, 0.1,0.2,0.3,0.4])
-            # plt.ylim(0, 0.4)
-            plt.xlabel('x')
-            plt.ylabel('y')
-            #
-            # fig.colorbar(surf, shrink=0.5, aspect=10)
-            # surf.set_edgecolor(surf.to_rgba(surf._A)) # probably transparent edges
-            # surf.set_edgecolor('black')
-            # x = surf.get_edgecolors()
-            # print(x)
             if matplotlib_export == True:
-                plt.savefig(path_to_expri+'plots'+'/{}_time_{}.eps'.format(experiment_name,round(float(i),5)))
+                try:
+                    os.mkdir(path_to_expri+'plots')
+                except Exception as FileExistsError:
+                    pass
+                # store vertex coorinates in x/y and function value in z array
+                for v in mesh.vertices:
+                    p = v.point
+                    x.append(p[0])
+                    y.append(p[1])
+                    z.append(gfucalc.components[sol_component].vec[v.nr])
 
-            print('Minimum: '+linfmin_l2)
-            print('Maximum: '+linfmax_l2)
-            plt.draw()
-            plt.waitforbuttonpress(0)
-            plt.close(fig)
+
+                # triangulation
+                for e in mesh.Elements():
+                    trigs.append( [v.nr for v in e.vertices] )
+
+                fig = plt.figure()
+                ax = fig.gca(projection='3d')
+                ax.grid(True)
+                fig.patch.set_facecolor('white')
+                surf = ax.plot_trisurf(x, y, z, triangles=trigs, antialiased=False, cmap=cm.coolwarm, linewidth=0, shade=False)
+                # Activate for rectangle experiment!!
+                # ax.set_yticks([0, 0.1,0.2,0.3,0.4])
+                # plt.ylim(0, 0.4)
+                plt.xlabel('x')
+                plt.ylabel('y')
+                #
+                # fig.colorbar(surf, shrink=0.5, aspect=10)
+                # surf.set_edgecolor(surf.to_rgba(surf._A)) # probably transparent edges
+                # surf.set_edgecolor('black')
+                # x = surf.get_edgecolors()
+                # print(x)
+
+                plt.savefig(path_to_expri+'plots'+'/{}_time_{}.eps'.format(experiment_full_name,round(float(i),5)))
+
+                print('Minimum: {}'.format(linfmin_l2))
+                print('Maximum: {}'.format(linfmax_l2))
+                plt.draw()
+                plt.waitforbuttonpress(0)
+                plt.close(fig)
