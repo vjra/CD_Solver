@@ -16,12 +16,34 @@ import fnmatch
 
 # import pdb
 
+############################################################################
+########################## New features, not implemented ###################
+############################################################################
+
+
+############################################################################
+########################## Functions to log the experiment #################
+############################################################################
 
 def folder_checker(experiment_name,path):
-    cont_switch = False
+    """Checks if a folder for the experiment (experiment_name)
+     exists. If this is true, it sets the continuation parameter
+     cont_switch to 'True'. If this false, creates a
+     folder for the experiment in the directory 'simulations_data'.
+
+    Parameters:
+    experiment_name (str): url that contains a pdf.
+    path (str): Path to the folder for the simulation data.
+
+    Returns:
+    cont_switch (boolean): Is false if no experiment folder is present,
+                           and True if its a new experiment attempt.
+    """
+
+    cont_switch=False
     uvoldname = ''
     try:
-        os.mkdir(path+'simulations/{}'.format(experiment_name,experiment_name))
+        os.mkdir(path+'simulations_data/{}'.format(experiment_name,experiment_name))
 
     except Exception as FileExistsError:
         try:
@@ -30,12 +52,23 @@ def folder_checker(experiment_name,path):
             else:
                 cont_switch = True
         except OSError as e:
-            pass
-            # print ("Error: %s - %s." % (e.filename, e.strerror))
+            print ("Error: %s - %s." % (e.filename, e.strerror))
     return cont_switch
 
 
 def continuation_time(experiment_name,simulations_folder,V,dt):
+    """Extracts the stored data for the continuation of an experiment.
+
+    Parameters:
+    experiment_name (str): url that contains a pdf.
+    simulations_folder (str): folder where the experiments are stored.
+    V (ngsolve.comp.FESpace object): FEspace for this experiment.
+    dt (float): time step size for this experiment.
+
+    Returns:
+    old_timestepping_last_time (float): last time step stored in folder.
+    uvold (ngsolve.comp.GridFunction object): gridfunction of last time step stored in folder.
+    """
     with open(simulations_folder+'{}/time_list.csv'.format(experiment_name), 'r') as csvfile:
         reader = csv.reader(csvfile)
         lines = list(reader)
@@ -54,9 +87,20 @@ def continuation_time(experiment_name,simulations_folder,V,dt):
 
     return old_timestepping_last_time, uvold
 
-############################### Create Logfile #################################
-
 def log_file_creator(foldername,experiment_list):
+    """Creates a log file that contains 
+
+    Parameters:
+    experiment_name (str): url that contains a pdf.
+    simulations_folder (str): folder where the experiments are stored.
+    V (ngsolve.comp.FESpace object): FEspace for this experiment.
+    dt (float): time step size for this experiment.
+
+    Returns:
+    old_timestepping_last_time (float): last time step stored in folder.
+    uvold (ngsolve.comp.GridFunction object): gridfunction of last time step stored in folder.
+    """
+
     today = datetime.now()
     today_string = '{}_{}_{}_{}'.format(today.year,today.month,today.day,today.hour)
     logfilename = foldername+'/{}_errorlog.csv'.format(today_string)
@@ -69,25 +113,6 @@ def log_file_creator(foldername,experiment_list):
         pass
 
     return logfilename
-
-
-def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
-    res = gfu.vec.CreateVector()
-    du = gfu.vec.CreateVector()
-    fes = gfu.space
-    for it in range(maxits):
-        print ("Iteration {:3}  ".format(it),end="")
-        a.Apply(gfu.vec, res)
-        a.AssembleLinearization(gfu.vec)
-        du.data = a.mat.Inverse(fes.FreeDofs()) * res
-        gfu.vec.data -= du
-
-        #stopping criteria
-        stopcritval = sqrt(abs(InnerProduct(du,res)))
-        print ("<A u",it,", A u",it,">_{-1}^0.5 = ", stopcritval)
-        if stopcritval < tol:
-            break
-
 
 def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str):
     paramdict = {'experiment_name': experiment_name,'mass': mass, \
@@ -108,6 +133,30 @@ def time_list_writer(path,experiment_full_name,dt,timestep,filename,linfmin_l2,l
         fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
         listwriter = csv.DictWriter(csvfile,fieldnames = fieldnames)
         listwriter.writerow(time_list_dict)
+
+############################################################################
+########################## Solver functions ################################
+############################################################################
+
+def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
+    res = gfu.vec.CreateVector()
+    du = gfu.vec.CreateVector()
+    fes = gfu.space
+    for it in range(maxits):
+        print ("Iteration {:3}  ".format(it),end="")
+        a.Apply(gfu.vec, res)
+        a.AssembleLinearization(gfu.vec)
+        du.data = a.mat.Inverse(fes.FreeDofs()) * res
+        gfu.vec.data -= du
+
+        #stopping criteria
+        stopcritval = sqrt(abs(InnerProduct(du,res)))
+        print ("<A u",it,", A u",it,">_{-1}^0.5 = ", stopcritval)
+        if stopcritval < tol:
+            break
+
+
+
 
 
 def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver):
