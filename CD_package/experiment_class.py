@@ -78,6 +78,7 @@ class experiment():
         order = self.expri_data['order']
         geometry = self.expri_data['geometry']
         visualoutput_solver = self.visualoutput_solver
+
         if visualoutput_solver == True:
             import netgen.gui
 
@@ -120,12 +121,24 @@ class experiment():
             # Redraw(True)
         else:
             gfucalc.vec.data = uvold.vec
-        time_list_dict = {'dt': dt, 'timestep': 0,'filename':simulations_folder+experiment_full_name+'/'+experiment_full_name+'_time_0',\
-                          'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
-        with open(path+'{}/time_list.csv'.format(experiment_full_name),'w') as csvfile:
-            fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
-            listwriter = csv.DictWriter(csvfile, fieldnames = fieldnames)
-            listwriter.writerow(time_list_dict)
+        if cont_switch == False:
+            time_list_dict = {'dt': dt, 'timestep': 0,'filename':simulations_folder+experiment_full_name+'/'+experiment_full_name+'_time_0',\
+                              'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
+            with open(path+'{}/time_list.csv'.format(experiment_full_name),'w') as csvfile:
+                # fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
+                # listwriter = csv.DictWriter(csvfile, fieldnames = fieldnames)
+                # listwriter.writerow(time_list_dict)
+                pass
+        else:
+            with open(path+'{}/time_list.csv'.format(experiment_full_name),'r+') as csvfile:
+                fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
+                lines = csvfile.readlines()
+                lines = lines[:-1]
+                lines[-1] = lines[-1].strip()
+                csvfile.seek(0)
+                print(lines)
+                for line in lines:
+                    csvfile.write(line)
 
 
         sleep(1)
@@ -133,8 +146,15 @@ class experiment():
         paramlisto = paramlist(path,experiment_full_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str)
         SetNumThreads(8)
         sleep(1)
-        self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver)
-        print('Experiment: {}, done'.format(experiment_full_name))
+        try:
+            self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver)
+            print('Experiment: {}, done'.format(experiment_full_name))
+        except Exception as e:
+            print(str(e))
+            with open(log_file_name,'a') as f:
+                f.write(str(e)+';\n')
+        finally:
+            pass
 
     def plotseries_and_more(self, netgenrender = True, vtkoutput = False, make_linftyplot = False,scale_factor = 1, plot_modulo = 1,deform_param = 1):
         experiment_full_name = self.experiment_full_name

@@ -14,7 +14,7 @@ from pathlib import Path
 import fnmatch
 
 
-# import pdb
+import pdb
 
 ############################################################################
 ########################## New features, not implemented ###################
@@ -33,21 +33,21 @@ def folder_checker(experiment_name,path):
 
     Parameters:
     experiment_name (str): url that contains a pdf.
-    path (str): Path to the folder for the simulation data.
+    path (str): path to the folder for the simulation data.
 
     Returns:
-    cont_switch (boolean): Is false if no experiment folder is present,
+    cont_switch (boolean): is false if no experiment folder is present,
                            and True if its a new experiment attempt.
     """
 
     cont_switch=False
     uvoldname = ''
     try:
-        os.mkdir(path+'simulations_data/{}'.format(experiment_name,experiment_name))
+        os.mkdir(path+'{}'.format(experiment_name,experiment_name))
 
     except Exception as FileExistsError:
         try:
-            if len(os.listdir(path+'simulations/{}'.format(experiment_name))) == 0:
+            if len(os.listdir(path+'/{}'.format(experiment_name))) == 0:
                 cont_switch = False
             else:
                 cont_switch = True
@@ -56,12 +56,12 @@ def folder_checker(experiment_name,path):
     return cont_switch
 
 
-def continuation_time(experiment_name,simulations_folder,V,dt):
+def continuation_time(experiment_name,path,V,dt):
     """Extracts the stored data for the continuation of an experiment.
 
     Parameters:
     experiment_name (str): url that contains a pdf.
-    simulations_folder (str): folder where the experiments are stored.
+    path (str): path to the folder for the simulation data.
     V (ngsolve.comp.FESpace object): FEspace for this experiment.
     dt (float): time step size for this experiment.
 
@@ -69,9 +69,10 @@ def continuation_time(experiment_name,simulations_folder,V,dt):
     old_timestepping_last_time (float): last time step stored in folder.
     uvold (ngsolve.comp.GridFunction object): gridfunction of last time step stored in folder.
     """
-    with open(simulations_folder+'{}/time_list.csv'.format(experiment_name), 'r') as csvfile:
+    with open(path+'{}/time_list.csv'.format(experiment_name), 'r') as csvfile:
         reader = csv.reader(csvfile)
         lines = list(reader)
+        
         if len(lines) == 2:
             row = lines[-1]
             old_timestepping_last_time = 0
@@ -87,23 +88,21 @@ def continuation_time(experiment_name,simulations_folder,V,dt):
 
     return old_timestepping_last_time, uvold
 
-def log_file_creator(foldername,experiment_list):
-    """Creates a log file that contains 
+def log_file_creator(path,experiment_list):
+    """Creates a log file, with date and time when the experiment was started.
+    Contains the experiment name and error if occured.
 
     Parameters:
     experiment_name (str): url that contains a pdf.
-    simulations_folder (str): folder where the experiments are stored.
-    V (ngsolve.comp.FESpace object): FEspace for this experiment.
-    dt (float): time step size for this experiment.
+    path (str): path to the folder for the simulation data.
 
     Returns:
-    old_timestepping_last_time (float): last time step stored in folder.
-    uvold (ngsolve.comp.GridFunction object): gridfunction of last time step stored in folder.
+    logfilename (str): name of the logfile.
     """
 
     today = datetime.now()
     today_string = '{}_{}_{}_{}'.format(today.year,today.month,today.day,today.hour)
-    logfilename = foldername+'/{}_errorlog.csv'.format(today_string)
+    logfilename = path+'/{}_errorlog.csv'.format(today_string)
     try:
         with open(logfilename,"w") as f:
             f.write("##############LOG############\n")
@@ -130,6 +129,7 @@ def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,
 def time_list_writer(path,experiment_full_name,dt,timestep,filename,linfmin_l2,linfmax_l2,mass):
     time_list_dict = {'dt': dt, 'timestep': timestep,'filename':filename,'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
     with open(path+'{}/time_list.csv'.format(experiment_full_name),'a') as csvfile:
+        print(path+'{}/time_list.csv'.format(experiment_full_name))
         fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
         listwriter = csv.DictWriter(csvfile,fieldnames = fieldnames)
         listwriter.writerow(time_list_dict)
