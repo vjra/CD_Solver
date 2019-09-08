@@ -1,7 +1,7 @@
 from solver import *
 from ngsolve import *
 from plots_and_more_lib import *
-# import netgen.gui
+import netgen.gui
 # Solve (u_t,eps*v_t) = div(A*(u,v)) + (0,-u[1]+u[0]^alpha)
 
 ############################### global variables #################################
@@ -112,18 +112,19 @@ class experiment():
         print('Total mass of initial data: ', mass)
         if visualoutput_solver == True:
             gfucalc.vec.data = uvold.vec
-            Draw(gfucalc.components[1],mesh, 'c')
+            # Draw(gfucalc.components[1],mesh, 'c')
             Draw(gfucalc.components[0],mesh, name = 'rho')
             # visoptions.scalfunction="rho"
             # visoptions.vecfunction = "None"
             # visoptions.scaledeform1 = 0.001
             # visoptions.deformation = 1
-            # Redraw(True)
+            Redraw(True)
         else:
             gfucalc.vec.data = uvold.vec
         if cont_switch == False:
             time_list_dict = {'dt': dt, 'timestep': 0,'filename':simulations_folder+experiment_full_name+'/'+experiment_full_name+'_time_0',\
                               'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
+
             with open(path+'{}/time_list.csv'.format(experiment_full_name),'w') as csvfile:
                 # fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
                 # listwriter = csv.DictWriter(csvfile, fieldnames = fieldnames)
@@ -133,16 +134,16 @@ class experiment():
             with open(path+'{}/time_list.csv'.format(experiment_full_name),'r+') as csvfile:
                 fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
                 lines = csvfile.readlines()
+                csvfile.truncate(0)
                 lines = lines[:-1]
                 lines[-1] = lines[-1].strip()
                 csvfile.seek(0)
-                print(lines)
                 for line in lines:
                     csvfile.write(line)
 
-
-        sleep(1)
         log_file_name = log_file_creator(simulations_folder,experiment_full_name)
+        sleep(1)
+
         paramlisto = paramlist(path,experiment_full_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str)
         SetNumThreads(8)
         sleep(1)

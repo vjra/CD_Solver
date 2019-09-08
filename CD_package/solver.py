@@ -72,7 +72,7 @@ def continuation_time(experiment_name,path,V,dt):
     with open(path+'{}/time_list.csv'.format(experiment_name), 'r') as csvfile:
         reader = csv.reader(csvfile)
         lines = list(reader)
-        
+
         if len(lines) == 2:
             row = lines[-1]
             old_timestepping_last_time = 0
@@ -113,7 +113,32 @@ def log_file_creator(path,experiment_list):
 
     return logfilename
 
-def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str):
+def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str = ''):
+    """Creates a parameter dictionary that contains all parameter set.
+    In addition, a csv file (parameter.csv) is created in the experiment folder,
+    containing the same information.
+
+    Parameters:
+    experiment_name (str): url that contains a pdf.
+    path (str): path to the folder for the simulation data.
+    mass (float): L^1 norm of the initial data.
+    dt (float): time step size.
+    meshsize (float): mesh size.
+    order (float): order of the functions in the finite element space.
+    T (float): end time of the simulation.
+    geometry (str): geometry specification as string.
+    ini_data_str (str): initial data as string, if given.
+
+    alpha, epsilon, delta (str): parameters for the system in equation, i.e.
+        rho_t         = div(\nabla \rho - rho*\nabla c)
+        epsilon*c_t   = div(\nabla c + delta*\nabla rho ) + c + rho^alpha
+
+
+    Generates:
+    parameter.csv: file containing all parameters of the experiment.
+    Returns:
+    paramdict (dict): dictionary containing all parameters of the experiment.
+    """
     paramdict = {'experiment_name': experiment_name,'mass': mass, \
                  'alpha': alpha, 'epsilon': epsilon, 'delta': delta,\
                  'dt': dt,'meshsize': meshsize,'order': order, 'T': T, 'geometry': geometry,'ini_data': ini_data_str}
@@ -127,6 +152,22 @@ def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,
 
 
 def time_list_writer(path,experiment_full_name,dt,timestep,filename,linfmin_l2,linfmax_l2,mass):
+    """Creates a timelist to restart the experiment at the last time step recorded.
+
+    Parameters:
+    experiment_full_name (str): url that contains a pdf.
+    path (str): path to the folder for the simulation data.
+    dt (float): time step size.
+    timestep (int): current time step.
+    filename (str): file name of the time step computed.
+    linfmin_l2 (float): approximation of the minimum of rho.
+    linfmax_l2 (float): approximation of the maximum of rho.
+    mass (float): L^1 norm of the initial data.
+
+    Generates:
+    time_list.csv: list of all time step taken, including some information like mass.
+
+    """
     time_list_dict = {'dt': dt, 'timestep': timestep,'filename':filename,'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
     with open(path+'{}/time_list.csv'.format(experiment_full_name),'a') as csvfile:
         print(path+'{}/time_list.csv'.format(experiment_full_name))
@@ -139,6 +180,19 @@ def time_list_writer(path,experiment_full_name,dt,timestep,filename,linfmin_l2,l
 ############################################################################
 
 def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
+    """Newton solver for nonlinear systems, uses the ngsolve routine
+    'AssembleLinearization' to compute a linearization.
+
+    Parameters:
+    gfu (ngsolve.comp.GridFunction): solution from last time step.
+    a (ngsolve.comp.BilinearForm): bilinear form of the divergence term.
+    tol (float): error tolerance
+    maxits (int): maximum of iterations before the solver stops in any case.
+
+    Updates:
+    gfu.vec.data (ngsolve.comp.GridFunction)
+
+    """
     res = gfu.vec.CreateVector()
     du = gfu.vec.CreateVector()
     fes = gfu.space
@@ -159,7 +213,30 @@ def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
 
 
 
-def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver):
+def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver = False):
+    """Actual solver routine, that loops over the time steps and uses
+    a the Newton function 'SimpleNewtonSolve' to solve the system.
+
+    Parameters:
+    experiment_full_name (str): url that contains a pdf.
+    path (str): path to the folder for the simulation data.
+    uvold (ngsolve.comp.GridFunction): initial data as grid function.
+    gfucalc (ngsolve.comp.GridFunction): grid function on FEspace that stores latest time step of the solution.
+    gfuL2 (ngsolve.comp.GridFunction): grid function on L2 space that stores latest time step of the solution.
+    a (ngsolve.comp.BilinearForm): bilinear form of the divergence term.
+    mesh (ngsolve.comp.Mesh): mesh.
+    dt (float): time step size.
+    nsteps (int): number of time step to take.
+    paramlisto (dict): dictionary of parameters, see function 'paramlist'.
+    startingtimestep (int): initial time step.
+    visualoutput_solver (boolean): switch to activate plotting in netgen.
+
+    Return:
+    gfucalc (ngsolve.comp.GridFunction): grid function of solution at last time step on FEspace.
+    endtime (float): time when routine stopped.
+    """
+
+
     initialmass = (Integrate(uvold.components[0],mesh),Integrate(uvold.components[1],mesh))
     with TaskManager():
         for i in range(startingtimestep,nsteps):
@@ -205,6 +282,8 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
 
                 break
             if visualoutput_solver == True:
+                # Draw(gfucalc.components[1],mesh, 'c')
+                Draw(gfucalc.components[0],mesh, name = 'rho')
                 # visoptions.scalfunction="rho"
                 # visoptions.vecfunction = "None"
                 # visoptions.scaledeform1 = 0.001

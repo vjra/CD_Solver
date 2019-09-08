@@ -1,10 +1,13 @@
 from experiment_class import *
 import netgen.gui
+
+# rho_t         = div(\nabla \rho - rho*\nabla c)
+# epsilon*c_t   = div(\nabla c + delta*\nabla rho ) + c + rho^alpha
 filedir ='.'
 # simulations_folder = '/simulations_data/'
 simulations_folder = '/simulations_data/'
 path = filedir+simulations_folder
-visualoutput_solver = False
+visualoutput_solver = True
 ini_data = (8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)
 ini_data_str = '(8*pi/(pi*1/200)*exp(-200*(x-0.5)**2-200*(y-0.5)**2), 0)'
 #expri_name,alpha,delta,epsilon,dt,T,meshsize,order,geometry,visualoutput_solver):
