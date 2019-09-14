@@ -112,12 +112,9 @@ class experiment():
         print('Total mass of initial data: ', mass)
         if visualoutput_solver == True:
             gfucalc.vec.data = uvold.vec
-            # Draw(gfucalc.components[1],mesh, 'c')
+            Draw(gfucalc.components[1],mesh, 'c')
             Draw(gfucalc.components[0],mesh, name = 'rho')
-            # visoptions.scalfunction="rho"
-            # visoptions.vecfunction = "None"
-            # visoptions.scaledeform1 = 0.001
-            # visoptions.deformation = 1
+
             Redraw(True)
         else:
             gfucalc.vec.data = uvold.vec

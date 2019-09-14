@@ -73,7 +73,7 @@ def continuation_time(experiment_name,path,V,dt):
         reader = csv.reader(csvfile)
         lines = list(reader)
 
-        if len(lines) == 2:
+        if len(lines) <= 2:
             row = lines[-1]
             old_timestepping_last_time = 0
         else:
@@ -215,7 +215,7 @@ def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
 
 def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver = False):
     """Actual solver routine, that loops over the time steps and uses
-    a the Newton function 'SimpleNewtonSolve' to solve the system.
+    Newton in the function 'SimpleNewtonSolve' to solve the nonlinear system.
 
     Parameters:
     experiment_full_name (str): url that contains a pdf.
@@ -247,13 +247,7 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
             gfuL2.Set(gfucalc.components[0])
             linfmin_l2 = min(gfuL2.vec)
             linfmax_l2 = max(gfuL2.vec)
-            # modulo_constant = 1
-            # if dt < 1e-5:
-            #     modulo_constant = 100
-            # elif dt < 1e-9:
-            #     modulo_constant = 1000
-
-            # if i % modulo_constant == 0:
+            # todo: implement modulo constant, in order to only save every time step modulo this constant.
             modulo_constant = 0
             gfucalc.Save(path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt)))
             with open(path+'{}/last_time.txt'.format(experiment_full_name),"w") as f:
@@ -282,12 +276,6 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
 
                 break
             if visualoutput_solver == True:
-                # Draw(gfucalc.components[1],mesh, 'c')
-                Draw(gfucalc.components[0],mesh, name = 'rho')
-                # visoptions.scalfunction="rho"
-                # visoptions.vecfunction = "None"
-                # visoptions.scaledeform1 = 0.001
-                # visoptions.deformation = 1
                 Redraw(True)
 
             btime = time()

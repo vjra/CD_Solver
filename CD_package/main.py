@@ -1,6 +1,6 @@
 from experiment_class import *
 import netgen.gui
-
+# Solve (rho_t,eps*c_t) = div(A*\nabla(rho,c)) + (0,-c+rho^alpha)
 # rho_t         = div(\nabla \rho - rho*\nabla c)
 # epsilon*c_t   = div(\nabla c + delta*\nabla rho ) + c + rho^alpha
 filedir ='.'
