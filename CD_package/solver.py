@@ -60,7 +60,7 @@ def continuation_time(experiment_name,path,V,dt):
     """Extracts the stored data for the continuation of an experiment.
 
     Parameters:
-    experiment_name (str): url that contains a pdf.
+    experiment_name (str): name of the experiment to load.
     path (str): path to the folder for the simulation data.
     V (ngsolve.comp.FESpace object): FEspace for this experiment.
     dt (float): time step size for this experiment.
@@ -102,14 +102,17 @@ def log_file_creator(path,experiment_list):
 
     today = datetime.now()
     today_string = '{}_{}_{}_{}'.format(today.year,today.month,today.day,today.hour)
-    logfilename = path+'/{}_errorlog.csv'.format(today_string)
+    logfilename = path+'{}_errorlog.csv'.format(today_string)
     try:
         with open(logfilename,"w") as f:
             f.write("##############LOG############\n")
-            for expridata in experiment_list:
-                f.write(str(expridata)+';\n')
+            experiment_string =''
+            for key,value in experiment_list.items():
+                experiment_string += str(key) +': '+ str(value) +', '
+
+            f.write(experiment_string+';\n')
     except Exception as FileExistsError:
-        pass
+        print(FileExistsError)
 
     return logfilename
 
@@ -213,7 +216,8 @@ def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
 
 
 
-def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver = False):
+def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a, \
+        mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver = False,log_file_name = ''):
     """Actual solver routine, that loops over the time steps and uses
     Newton in the function 'SimpleNewtonSolve' to solve the nonlinear system.
 
@@ -230,6 +234,7 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
     paramlisto (dict): dictionary of parameters, see function 'paramlist'.
     startingtimestep (int): initial time step.
     visualoutput_solver (boolean): switch to activate plotting in netgen.
+    log_file_name (str): filename of log file.
 
     Return:
     gfucalc (ngsolve.comp.GridFunction): grid function of solution at last time step on FEspace.
@@ -241,6 +246,7 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
     with TaskManager():
         for i in range(startingtimestep,nsteps):
             atime = time()
+            endtime = str(dt*i)
             uvold.vec.data = gfucalc.vec
             SimpleNewtonSolve(gfucalc,a)
             mass = (Integrate(gfucalc.components[0],mesh),Integrate(gfucalc.components[1],mesh))
@@ -261,12 +267,13 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
 
             if  linfmin_l2 < 0:
                 print('>>>>>>>>>>>>>>>>> Negative Value >>>>>>>>>>>>>>>>> {}'.format(linfmin_l2))
-                break
+                with open(log_file_name,'a') as f:
+                    f.write(""">>>>>>>>>>>>>>>>> Reached negative value in rho
+                            (gfucalc[0]) >>>>>>>>>>>>>>>>> {}""".format(linfmin_l2)+';\n')
 
             print("total mass = ", mass, "MinvalueL2: ", linfmin_l2, "MaxvalueL2: ", linfmax_l2)
             if mass[0] > initialmass[0]*2  or linfmin_l2 <0:
                 endtime = i*dt
-                errormess(mass)
                 with open(path+'{}/errormessage.txt'.format(experiment_full_name),"w") as f:
                     f.write('''Error at timestep {}:\nMass {}
                                \n min: {} \n max: {}'''.format(i,mass,linfmin_l2,linfmax_l2))
@@ -281,7 +288,7 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a,mesh,dt,nsteps,paramlist
             btime = time()
             print("step took: ",str(btime-atime))
             print("Time: {}, time step: {} of {}".format(str(dt*i),i,nsteps))
-            endtime = nsteps*dt
+
 
         with open(path+'{}/parameter.txt'.format(experiment_full_name),"w") as f:
             for param in paramlisto:

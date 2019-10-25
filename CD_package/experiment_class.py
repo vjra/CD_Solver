@@ -7,36 +7,15 @@ import netgen.gui
 ########################## Experiment class info ###########################
 ############################################################################
 
-
-# Solves the parabolic-parabolic system
+# Solves the parabolic-parabolic system for u=(\rho,c) \in \R^2
 #
-# (u_t,eps*v_t) = div(A*(u,v)) + f(u,v)
+# u_t = div(A(u) \nabla u) + f(u)
 #
 # for t > 0 on a bounded domain Omega,
 # with source term
-# f(u,v) = (0,-u[1]+u[0]^alpha)
+# f(u) = (0,-u[1]+u[0]^alpha)
 # and parameters
 # with eps >= 0 and alpha >0.
-
-
-############################################################################
-########################## New features, not implemented ###################
-############################################################################
-# Solve the parabolic-parabolic system
-#
-# (u_t,eps*v_t) = div(A*(u,v)) + f(u,v)
-#
-# for t > 0 on a bounded domain Omega,
-# with source term
-# f(u,v) = p(u,v),
-# with p a polynomial in u and v.
-# and parameters
-# with eps >= 0.
-
-############################################################################
-########################## Functions to log the experiment #################
-############################################################################
-
 
 ############################################################################
 ########################## Global variables ################################
@@ -53,27 +32,116 @@ path = filedir+simulations_folder
 ############################################################################
 
 class experiment():
+    """
+
+    """
     ############################################################################
     ########################## Class init and file structure ###################
     ############################################################################
-    def __init__(self,expri_name,alpha,delta,epsilon,dt,T,meshsize,order,geometry,visualoutput_solver):
-        self.expri_data = {'expri_name': expri_name,'alpha': alpha, 'delta': delta, \
+    def __init__(self,experiment_name,alpha,delta,epsilon,dt,T,meshsize,order,geometry,visualoutput_solver):
+        """ Initialize object of class experiment.
+            In particular, it sets the name, parameters and filepath
+            for the experiment.
+
+        Attributes
+        ----------
+
+        experiment_name (str): used in all export or saving file.
+        alpha, delta (float): Free parameters to
+        epsilon (float): Parameter to switch from parabolic-parabolic to parabolic-elliptic modelself.
+        dt (float): time step size.
+        T (float): end time of the simulation.
+        meshsize (float): mesh size.
+        order (float): order of the functions in the finite element space.
+        geometry (str): geometry specification as string.
+        visualoutput_solver (boolean): True starts netgen for plotting during computations.
+
+        Initilizing class variables
+        ---------------------------
+
+        expri_data (dict): Dictionary including simulation parameters and name.
+            alpha, delta (float): Free parameters to
+            epsilon (float): Parameter to switch from parabolic-parabolic to parabolic-elliptic modelself.
+            dt (float): time step size.
+            T (float): end time of the simulation.
+            meshsize (float): mesh size.
+            order (float): order of the functions in the finite element space.
+            geometry (str): geometry specification as string.
+
+        experiment_full_name (str): Full experiment name, including simulation parameter.
+        visualoutput_solver (boolean): True starts netgen for plotting during computations.
+        simulations_folder (str): Folder used to store simulation data.
+        path (str): filedir/simulationfolder
+        filedir (str): filedir of simulationfolder.
+
+        Methods
+        -------
+        set_file_structure(self,simulations_folder,path,filedir):
+
+        meshgeneration_n_spaces(self):
+
+        set_initial_data(self,ini_data,ini_data_str='No string was entered'):
+
+        weak_formulation(self,diffusion_matrix,source_term=0):
+
+        run_experiment(self):
+
+        plotseries_and_more(self, netgenrender = True, vtkexport = False,
+                            make_linftyplot = False,scale_factor = 1,
+                            plot_modulo = 1,deform_param = 1):
+
+        plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True,
+                            matplotlib_export = False, vtkexport = False, scale_factor = 1,
+                            plot_modulo = 1,deform_param = 1):
+        """
+
+        self.expri_data = {'experiment_name': experiment_name,'alpha': alpha, 'delta': delta, \
                            'epsilon': epsilon, 'dt': dt,'T': T, 'meshsize': meshsize,'order':order,'geometry': geometry}
-        self.experiment_full_name = expri_name+'_{}_alpha_{}_epsilon_{}_delta_{}'.format(geometry.replace(" ", ""),alpha,epsilon,delta)
+        self.experiment_full_name = experiment_name+'_{}_alpha_{}_epsilon_{}_delta_{}'.format(geometry.replace(" ", ""),alpha,epsilon,delta)
         self.visualoutput_solver = visualoutput_solver
         self.simulations_folder = simulations_folder
         self.path = path
         self.filedir = filedir
 
     def set_file_structure(self,simulations_folder,path,filedir):
+        """ Can be used to change the file paths for a experiment object after
+            creation.
+
+        Parameters
+        ----------
+
+        simulations_folder (str): Folder used to store simulation data.
+        path (str): filedir/simulationfolder
+        filedir (str): filedir of simulationfolder.
+        """
         self.simulations_folder = simulations_folder
         self.path = path
         self.filedir = filedir
+
     ############################################################################
     ############### Meshgeneration, Finite element spaces, #####################
     ###############    initial data and weak formulation   #####################
     ############################################################################
     def meshgeneration_n_spaces(self):
+        """ Initializing finite element spaces for test and trial functions,
+            using parameters of object.
+
+        Initializing class variables
+        ---------------------------
+
+        FEspace (ngsolve.comp.FESpace object): Tensorproduct of X and Q, i.e.
+                                               finite element space for \rho and c.
+        u (list of ngsolve.comp.ProxyFunction): Symbolic function for weak formulation,
+                                                u[0] symbolizes \rho and u[1] symbolizes c.
+        v (list of ngsolve.comp.ProxyFunction): Symbolic function for weak formulation,
+                                                v[0] symbolizes test function for first equation
+                                                and v[1] symbolizes for second equation.
+        gfucalc (ngsolve.comp.GridFunction): Gridfunction of order specified by attribute "order" and
+                                             lifes in FEspace. Discrete function representing the solution of
+                                             the computation. \rho = gfucalc.components[0], c =  gfucalc.components[1].
+        gfuL2 (ngsolve.comp.GridFunction): Gridfunction of order 0. Using L2() from ngsolve. Used to approximate L^\infty norm.
+
+        """
         meshsize = self.expri_data['meshsize']
         order = self.expri_data['order']
         self.mesh = Mesh(unit_square.GenerateMesh(maxh=meshsize))
@@ -87,12 +155,49 @@ class experiment():
         self.gfucalc = GridFunction(self.FEspace, name = "u_h")
 
     def set_initial_data(self,ini_data,ini_data_str='No string was entered'):
+        """ Set initial data on gridfunction.
+
+        Initializing class variables
+        ---------------------------
+
+        uvold (ngsolve.comp.GridFunction): Gridfunction of order specified by attribute "order" and
+                                           lifes in FEspace. Discrete function representing the previous
+                                           time step during computation.
+                                           \rho_0 = uvold.components[0], c =  uvold.components[1].
+
+        """
         self.uvold = GridFunction(self.FEspace)
         self.ini_data_str = '{}'.format(ini_data_str)
         self.uvold.components[0].Set(CoefficientFunction(ini_data[0]))
         self.uvold.components[1].Set(CoefficientFunction(ini_data[1]))
 
     def weak_formulation(self,diffusion_matrix,source_term=0):
+        """ Defining weak formulation of the problem, using BilinearForm of ngsolve.
+
+        Parameters
+        ----------
+
+        diffusion_matrix (tuple): Flattend diffusion matrix A for weak formulation.
+                                  Length needs to be 4.
+                                  A = a_11 a_12
+                                      a_21 a_22
+                                  => diffusion_matrix = (a_11,a_12,a_21,a_22)
+                                  a_ij needs to be proxy function or CoefficientFunction object as in ngsolve.
+                                  e.g.:
+                                  1) A = (1,0,0,1) for Laplacian
+                                  2) A = (1,-experiment1.u[0],0,1) for classical Keller--Segel
+        source_term (tuple): Not yet implemented...
+
+
+        Initializing class variables
+        ---------------------------
+        diffusion_matrix (ngsolve.fem.CoefficientFunction): Defining diffusion matrix A for weak formulation.
+        a (ngsolve.comp.BilinearForm): Gridfunction of order specified by attribute "order" and
+                                           lifes in FEspace. Discrete function representing the previous
+                                           time step during computation.
+                                           \rho_0 = uvold.components[0], c =  uvold.components[1].
+
+        """
         self.diffusion_matrix = CoefficientFunction(diffusion_matrix,dims=(2,2))
         self.a = BilinearForm(self.FEspace)
         u = self.u
@@ -110,6 +215,19 @@ class experiment():
     ########################## Run and solve system  ###########################
     ############################################################################
     def run_experiment(self):
+        """ Run experiment using all class variables defined for the experiment.
+            Solution of last time computed successfully is stored in class variable gfucalc.
+            successfully computed timesteps are also saved using the ngsolve export for gridfunction.
+            If there already saved files, tries to continue the computation from last time step onwards.
+
+            Starts netgen and draws rho if visualoutput_solver is True.
+
+            Creates data folder for experiment and the following files:
+            time_list.csv,
+            log file with current timestamp.
+
+
+        """
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
@@ -128,6 +246,7 @@ class experiment():
         order = self.expri_data['order']
         geometry = self.expri_data['geometry']
         visualoutput_solver = self.visualoutput_solver
+        expri_data = self.expri_data
 
         if visualoutput_solver == True:
             import netgen.gui
@@ -141,7 +260,10 @@ class experiment():
             os.mkdir(path+experiment_full_name)
         except Exception as FileExistsError:
             pass
-
+        ############################################################################
+        ############### Continuation of old experiments  ###########################
+        ############################################################################
+        # checks if experiment data folder already exists, and some steps are already performed.
         cont_switch = folder_checker(experiment_full_name,path)
         print('Contswitch variable: '+str(cont_switch))
         if cont_switch == True:
@@ -152,22 +274,31 @@ class experiment():
             uvold.Save(filedir+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,0))
             startingtimestep = 0
         else:
-            print('something went wrong in cont_switching')
+            print('something went wrong in the continuation time attempt.')
+        ############################################################################
+        ####################### Solve and plot in netgen  ##########################
+        ############################################################################
+
+        # computes mass of initial data.
         mass = (Integrate(uvold.components[0],mesh),Integrate(uvold.components[1],mesh))
         gfuL2.Set(uvold.components[0])
+        # computes min and max as bad approximation of L^\infty norm.
         linfmin_l2 = min(gfuL2.vec)
         linfmax_l2 = max(gfuL2.vec)
+        # Number of time steps.
         nsteps = int(floor(T/dt))
         print('Number of time steps: ', nsteps)
         print('Total mass of initial data: ', mass)
+        # Plots rho and c, use interface to switch between them.
         if visualoutput_solver == True:
             gfucalc.vec.data = uvold.vec
             Draw(gfucalc.components[1],mesh, 'c')
             Draw(gfucalc.components[0],mesh, name = 'rho')
-
             Redraw(True)
         else:
             gfucalc.vec.data = uvold.vec
+
+        # Creates time_list.csv if not continuing computation.
         if cont_switch == False:
             time_list_dict = {'dt': dt, 'timestep': 0,'filename':simulations_folder+experiment_full_name+'/'+experiment_full_name+'_time_0',\
                               'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
@@ -178,6 +309,7 @@ class experiment():
                 # listwriter.writerow(time_list_dict)
                 pass
         else:
+            # deletes last time step of time_list as it was probably not valid.
             with open(path+'{}/time_list.csv'.format(experiment_full_name),'r+') as csvfile:
                 fieldnames = ['dt','timestep','filename','linfymin','linfmax','mass1','mass2']
                 lines = csvfile.readlines()
@@ -188,14 +320,20 @@ class experiment():
                 for line in lines:
                     csvfile.write(line)
 
-        log_file_name = log_file_creator(simulations_folder,experiment_full_name)
+        # creates log file using log_file_creater function of solver.py.
+        log_file_name = log_file_creator(path,expri_data)
         sleep(1)
-
-        paramlisto = paramlist(path,experiment_full_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str)
-        SetNumThreads(8)
+        # creating parameter list for experiment.
+        paramlisto = paramlist(path,experiment_full_name,mass,alpha,epsilon, \
+                               delta,dt,meshsize,order,T,geometry,ini_data_str)
+        # Sets number of threads for parallel computing.
+        # Use how many cores/threads you have, as always.
+        SetNumThreads(4)
         sleep(1)
+        # Actually run the solver of solver.py.
         try:
-            self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform,mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver)
+            self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform, \
+                                       mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver,log_file_name)
             print('Experiment: {}, done'.format(experiment_full_name))
         except Exception as e:
             print(str(e))
@@ -208,7 +346,8 @@ class experiment():
     ########################## Plot functions ##################################
     ############################################################################
 
-    def plotseries_and_more(self, netgenrender = True, vtkexport = False, make_linftyplot = False,scale_factor = 1, plot_modulo = 1,deform_param = 1):
+    def plotseries_and_more(self, netgenrender = True, vtkexport = False, make_linftyplot = False, \
+                            scale_factor = 1, plot_modulo = 1,deform_param = 1):
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
@@ -341,13 +480,15 @@ class experiment():
                     print ("Error: %s - %s." % (e.filename, e.strerror))
 
                 os.mkdir(path+'Experiments_Linftyplots')
-
+                
             df = pd.DataFrame(z, columns = ['t','f(t)'])
             df.to_csv(path+'Experiments_Linftyplots/{}_alpha_{}_delta_{}.dat'.format(experiment_full_name,alpha,delta), index=None, header=None)
             plt.savefig(path+'Experiments_Linftyplots/{}_endtime_{}.png'.format(experiment_full_name,i[0]))
         plt.close(fig)
 
-    def plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True, matplotlib_export = False, vtkexport = False, scale_factor = 1, plot_modulo = 1,deform_param = 1):
+    def plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True, \
+                        matplotlib_export = False, vtkexport = False, scale_factor = 1, \
+                        plot_modulo = 1,deform_param = 1):
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
