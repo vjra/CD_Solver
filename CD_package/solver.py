@@ -12,7 +12,7 @@ from time import sleep
 from datetime import datetime
 from pathlib import Path
 import fnmatch
-
+import logging
 
 import pdb
 
@@ -20,6 +20,24 @@ import pdb
 ########################## New features, not implemented ###################
 ############################################################################
 
+############################################################################
+########################## Logging #########################################
+############################################################################
+
+# create and configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# create a file handler
+handler = logging.FileHandler('./logs/solver.log', mode='w')
+handler.setLevel(logging.DEBUG)
+
+# create a logging format
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# add the file handler to the logger
+logger.addHandler(handler)
 
 ############################################################################
 ########################## Functions to log the experiment #################
@@ -56,7 +74,7 @@ def folder_checker(experiment_name,path):
     return cont_switch
 
 
-def continuation_time(experiment_name,path,V,dt):
+def continuation_time(experiment_name,path,V,dt,uvold):
     """Extracts the stored data for the continuation of an experiment.
 
     Parameters:
@@ -64,6 +82,7 @@ def continuation_time(experiment_name,path,V,dt):
     path (str): path to the folder for the simulation data.
     V (ngsolve.comp.FESpace object): FEspace for this experiment.
     dt (float): time step size for this experiment.
+    uvold (ngsolve.comp.GridFunction object): gridfunction of last time step stored in folder.
 
     Returns:
     old_timestepping_last_time (float): last time step stored in folder.
@@ -73,18 +92,21 @@ def continuation_time(experiment_name,path,V,dt):
         reader = csv.reader(csvfile)
         lines = list(reader)
 
-        if len(lines) <= 2:
+        if 0 < len(lines) <= 2:
             row = lines[-1]
             old_timestepping_last_time = 0
-        else:
+        elif len(lines)>2:
             row = lines[-2]
             old_timestepping_last_time = float(row[1])*float(row[0])
+        else:
+            old_timestepping_last_time = 0
+            row = []
+
     print('We continue according the the data:')
     print(row)
-    uvold = GridFunction(V)
-    print('We continue example {}. \n At timestep:'.format(old_timestepping_last_time))
-    print(str(old_timestepping_last_time))
-    uvold.Load(str(row[2]))
+    print('We continue example at time step: {}.\n'.format(old_timestepping_last_time))
+    if len(lines) > 1:
+        uvold.Load(str(row[2]))
 
     return old_timestepping_last_time, uvold
 
@@ -263,16 +285,17 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a, \
             filename_saved = path+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,str(i*dt))
             print('dt: ',dt,'filename:',filename_saved)
             time_list_writer(path,experiment_full_name,dt,i,filename_saved,linfmin_l2,linfmax_l2,mass)
-
-
-            if  linfmin_l2 < 0:
+            print("total mass = ", mass, "MinvalueL2: ", linfmin_l2, "MaxvalueL2: ", linfmax_l2)
+            if linfmin_l2 < 0:
                 print('>>>>>>>>>>>>>>>>> Negative Value >>>>>>>>>>>>>>>>> {}'.format(linfmin_l2))
                 with open(log_file_name,'a') as f:
                     f.write(""">>>>>>>>>>>>>>>>> Reached negative value in rho
                             (gfucalc[0]) >>>>>>>>>>>>>>>>> {}""".format(linfmin_l2)+';\n')
 
-            print("total mass = ", mass, "MinvalueL2: ", linfmin_l2, "MaxvalueL2: ", linfmax_l2)
-            if mass[0] > initialmass[0]*2  or linfmin_l2 <0:
+                logger.info('''Error at timestep {}:\nMass {}
+                           \n min: {} \n max: {}'''.format(i,mass,linfmin_l2,linfmax_l2))
+
+
                 endtime = i*dt
                 with open(path+'{}/errormessage.txt'.format(experiment_full_name),"w") as f:
                     f.write('''Error at timestep {}:\nMass {}
@@ -280,8 +303,8 @@ def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a, \
 
                 with open(path+'{}/error_endtime.txt'.format(experiment_full_name),"w") as f:
                     f.write(str(int(i)))
+                raise Exception('Negative value reached.')
 
-                break
             if visualoutput_solver == True:
                 Redraw(True)
 

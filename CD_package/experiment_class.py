@@ -1,7 +1,11 @@
 from solver import *
 from ngsolve import *
 from plots_and_more_lib import *
+import logging
 import netgen.gui
+
+
+
 
 ############################################################################
 ########################## Experiment class info ###########################
@@ -26,6 +30,25 @@ import netgen.gui
 filedir ='.'
 simulations_folder = '/simulations_data/'
 path = filedir+simulations_folder
+
+############################################################################
+########################## Logging #########################################
+############################################################################
+
+# create and configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# create a file handler
+handler = logging.FileHandler('./logs/experiment_class.log', mode='w')
+handler.setLevel(logging.INFO)
+
+# create a logging format
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# add the file handler to the logger
+logger.addHandler(handler)
 
 ############################################################################
 ########################## Class definition ################################
@@ -94,7 +117,7 @@ class experiment():
                             matplotlib_export = False, vtkexport = False, scale_factor = 1,
                             plot_modulo = 1,deform_param = 1):
         """
-
+        logger.info("Creating experiment object: {}".format(experiment_name))
         self.expri_data = {'experiment_name': experiment_name,'alpha': alpha, 'delta': delta, \
                            'epsilon': epsilon, 'dt': dt,'T': T, 'meshsize': meshsize,'order':order,'geometry': geometry}
         self.experiment_full_name = experiment_name+'_{}_alpha_{}_epsilon_{}_delta_{}'.format(geometry.replace(" ", ""),alpha,epsilon,delta)
@@ -114,6 +137,8 @@ class experiment():
         path (str): filedir/simulationfolder
         filedir (str): filedir of simulationfolder.
         """
+        logger.info("Setting file structure: simulation folder: {}, path: {}, filedir: {}"
+                     .format(simulations_folder,path,filedir))
         self.simulations_folder = simulations_folder
         self.path = path
         self.filedir = filedir
@@ -142,6 +167,7 @@ class experiment():
         gfuL2 (ngsolve.comp.GridFunction): Gridfunction of order 0. Using L2() from ngsolve. Used to approximate L^\infty norm.
 
         """
+        logger.info("""Creating mesh and FE space with parameters: meshsize: {}, order: {}""".format(self.expri_data['meshsize'],self.expri_data['order']))
         meshsize = self.expri_data['meshsize']
         order = self.expri_data['order']
         self.mesh = Mesh(unit_square.GenerateMesh(maxh=meshsize))
@@ -166,6 +192,7 @@ class experiment():
                                            \rho_0 = uvold.components[0], c =  uvold.components[1].
 
         """
+        logger.info("Setting Initial data.")
         self.uvold = GridFunction(self.FEspace)
         self.ini_data_str = '{}'.format(ini_data_str)
         self.uvold.components[0].Set(CoefficientFunction(ini_data[0]))
@@ -198,6 +225,7 @@ class experiment():
                                            \rho_0 = uvold.components[0], c =  uvold.components[1].
 
         """
+        logger.info("Defining weak formulation")
         self.diffusion_matrix = CoefficientFunction(diffusion_matrix,dims=(2,2))
         self.a = BilinearForm(self.FEspace)
         u = self.u
@@ -226,8 +254,8 @@ class experiment():
             time_list.csv,
             log file with current timestamp.
 
-
         """
+        logger.info("Starting run_experiment method.")
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
@@ -258,23 +286,31 @@ class experiment():
         print('simulations saved at: '+path+experiment_full_name)
         try:
             os.mkdir(path+experiment_full_name)
-        except Exception as FileExistsError:
-            pass
+        except Exception as exception:
+            logger.error('Simulation folder already existed', exc_info=True)
         ############################################################################
         ############### Continuation of old experiments  ###########################
         ############################################################################
         # checks if experiment data folder already exists, and some steps are already performed.
         cont_switch = folder_checker(experiment_full_name,path)
-        print('Contswitch variable: '+str(cont_switch))
+        logger.debug('cont_switch variable: '+str(cont_switch))
         if cont_switch == True:
-            old_timestepping_last_time, uvold = continuation_time(experiment_full_name,path,FEspace,dt)
-            startingtimestep = int(old_timestepping_last_time/dt)+1
+            uvold = self.uvold
+            old_timestepping_last_time, uvold = continuation_time(experiment_full_name,path,FEspace,dt,uvold)
+            if old_timestepping_last_time > 0:
+                startingtimestep = int(old_timestepping_last_time/dt)+1
+                print(startingtimestep)
+            else:
+                startingtimestep=0
         elif cont_switch == False:
             uvold = self.uvold
             uvold.Save(filedir+'{}/{}_time_{}'.format(experiment_full_name,experiment_full_name,0))
             startingtimestep = 0
         else:
-            print('something went wrong in the continuation time attempt.')
+            print('Something went wrong in the continuation time attempt.')
+            logger.debug('something went wrong in the continuation time attempt.', exc_info=True)
+
+        logger.info('Starting time step: '+str(startingtimestep))
         ############################################################################
         ####################### Solve and plot in netgen  ##########################
         ############################################################################
@@ -287,10 +323,13 @@ class experiment():
         linfmax_l2 = max(gfuL2.vec)
         # Number of time steps.
         nsteps = int(floor(T/dt))
+        logger.info('Initial mass: '+str(mass))
+        logger.info('Number of time steps: ' + str(nsteps))
         print('Number of time steps: ', nsteps)
         print('Total mass of initial data: ', mass)
         # Plots rho and c, use interface to switch between them.
         if visualoutput_solver == True:
+            logger.debug('Plotting initial data')
             gfucalc.vec.data = uvold.vec
             Draw(gfucalc.components[1],mesh, 'c')
             Draw(gfucalc.components[0],mesh, name = 'rho')
@@ -299,6 +338,7 @@ class experiment():
             gfucalc.vec.data = uvold.vec
 
         # Creates time_list.csv if not continuing computation.
+        logger.debug('Removing last line in time_list.csv')
         if cont_switch == False:
             time_list_dict = {'dt': dt, 'timestep': 0,'filename':simulations_folder+experiment_full_name+'/'+experiment_full_name+'_time_0',\
                               'linfymin': round(linfmin_l2,3),'linfmax':  round(linfmax_l2,3),'mass1': round(mass[0],3),'mass2':round(mass[1],3)}
@@ -315,12 +355,14 @@ class experiment():
                 lines = csvfile.readlines()
                 csvfile.truncate(0)
                 lines = lines[:-1]
-                lines[-1] = lines[-1].strip()
+                if len(lines) > 1:
+                    lines[-1] = lines[-1].strip()
                 csvfile.seek(0)
                 for line in lines:
                     csvfile.write(line)
 
         # creates log file using log_file_creater function of solver.py.
+        logger.debug('creates log file using log_file_creater function of solver.py.')
         log_file_name = log_file_creator(path,expri_data)
         sleep(1)
         # creating parameter list for experiment.
@@ -332,13 +374,16 @@ class experiment():
         sleep(1)
         # Actually run the solver of solver.py.
         try:
+            logger.info('Start run method from solver.')
             self.gfucalc,endtime = run(path,experiment_full_name,uvold,gfucalc,gfuL2,weakform, \
                                        mesh,dt,nsteps,paramlisto,startingtimestep,visualoutput_solver,log_file_name)
-            print('Experiment: {}, done'.format(experiment_full_name))
+            print('Experiment: {}, done at {}.'.format(experiment_full_name,endtime))
+            logger.info('Experiment: {}, done at {}.'.format(experiment_full_name,endtime))
         except Exception as e:
             print(str(e))
             with open(log_file_name,'a') as f:
                 f.write(str(e)+';\n')
+            logger.info('Some error occured during the run method of solver.py.', exc_info=True)
         finally:
             pass
 
@@ -348,6 +393,24 @@ class experiment():
 
     def plotseries_and_more(self, netgenrender = True, vtkexport = False, make_linftyplot = False, \
                             scale_factor = 1, plot_modulo = 1,deform_param = 1):
+        """ Plots simulation data in netgen, generates L^\infty plot over time and
+            generates vtk output.
+
+        Parameter
+        ----------
+
+        experiment_name (str): used in all export or saving file.
+        alpha, delta (float): Free parameters to
+        epsilon (float): Parameter to switch from parabolic-parabolic to parabolic-elliptic modelself.
+        dt (float): time step size.
+        T (float): end time of the simulation.
+        meshsize (float): mesh size.
+        order (float): order of the functions in the finite element space.
+        geometry (str): geometry specification as string.
+        visualoutput_solver (boolean): True starts netgen for plotting during computations.
+
+
+        """
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
@@ -366,12 +429,6 @@ class experiment():
         order = self.expri_data['order']
         geometry = self.expri_data['geometry']
         path_to_expri = path+experiment_full_name+'/'
-        if netgenrender == True:
-            import netgen.gui
-
-        print(path_to_expri)
-        print(experiment_full_name)
-
         try:
             os.mkdir(path_to_expri+'vtk')
         except Exception as FileExistsError:
@@ -383,7 +440,6 @@ class experiment():
             os.mkdir(path_to_expri+'vtk')
 
         timelist = reorder_timesteps(experiment_full_name,path_to_expri)
-        print(timelist)
         paramdict = opencsvfile(experiment_full_name,path_to_expri)
         Linftymin = []
         Linftymax = []
@@ -394,33 +450,23 @@ class experiment():
             if i[0] == 0.0:
                 gfucalc.Load(str(i[1]))
                 gfuL2.Set(gfucalc.components[0])
-                # pdb.set_trace()
-                x = []
-                y = []
-                z = []
-                trigs = []
-                for v in mesh.vertices:
-                    p = v.point
-                    x.append(p[0])
-                    y.append(p[1])
-                    z.append(gfucalc.components[0].vec[v.nr])
-                linfmax = max(z)
-                linfmin = min(z)
-
+                linfmin_l2 = min(gfuL2.vec)
+                linfmax_l2 = max(gfuL2.vec)
+                Linftymin.append(linfmin_l2)
+                Linftymax.append(linfmax_l2)
 
                 if netgenrender == True:
                     Draw(gfucalc.components[0],mesh,'density')
                     # visoptions.scalfunction="density"
-                    visoptions.vecfunction = "None"
-                    visoptions.scaledeform1 = scale_factor
-                    visoptions.deformation = deform_param
+                    # visoptions.vecfunction = "None"
+                    # visoptions.scaledeform1 = scale_factor
+                    # visoptions.deformation = deform_param
+                    Redraw(True)
 
                 inputparam = input('Press "y" to start the simulations, and "n" to return to python console > ')
                 if inputparam == 'n':
                     break
 
-                Linftymin.append(linfmin)
-                Linftymax.append(linfmax)
                 t.append(i[0])
                 if vtkexport == True:
                     vtk = VTKOutput(ma=mesh,coefs=[gfucalc.components[0],gfucalc.components[1]],names=['rho','c'],filename=path_to_expri+'vtk/{}_{}'.format(experiment_full_name,k),subdivision=2)
@@ -437,9 +483,9 @@ class experiment():
                     t.append(float(i[0]))
                     if netgenrender == True:
                         Redraw(True)
+                        Draw(gfucalc.components[0],mesh,'density')
+                        # visoptions.scalfunction="density"
 
-
-                    # store vertex coorinates in x/y and function value in z array
 
                     if vtkexport == True:
                         vtk = VTKOutput(ma=mesh,coefs=[gfucalc.components[0],gfucalc.components[1]],names=['rho','c'],filename=path_to_expri+'vtk/{}_{}'.format(experiment_full_name,k),subdivision=2)
@@ -447,11 +493,12 @@ class experiment():
                         print('Timestep: {}'.format(i))
 
                     print(i[0])
+
             k += 1
 
 
-        print(t)
-        print(Linftymax)
+        print('Timesteps: {}'.format(t))
+        print('L^infty values: {}'.format(Linftymax))
         fig = plt.figure(1)
         plt.subplot(211)
         plt.plot(t,Linftymax)
@@ -463,14 +510,10 @@ class experiment():
         plt.title("Minimumvalue vs Time")
         plt.xlabel("t")
         plt.ylabel("Minimumvalue of rho")
-        # plt.plot(t[0:-2],Linftymax[0:-2])
-        # plt.plot(t[0:-2],Linftymin[0:-2])
-        #plt.draw()
         z = np.array([t,Linftymax])
         z= np.transpose(z)
         lasttime_plotted = round(T*dt,5)
         if make_linftyplot == True:
-
             try:
                 os.mkdir(path+'Experiments_Linftyplots')
             except Exception as FileExistsError:
@@ -480,7 +523,7 @@ class experiment():
                     print ("Error: %s - %s." % (e.filename, e.strerror))
 
                 os.mkdir(path+'Experiments_Linftyplots')
-                
+            print('Exporting L^infty plots to png and dat.')
             df = pd.DataFrame(z, columns = ['t','f(t)'])
             df.to_csv(path+'Experiments_Linftyplots/{}_alpha_{}_delta_{}.dat'.format(experiment_full_name,alpha,delta), index=None, header=None)
             plt.savefig(path+'Experiments_Linftyplots/{}_endtime_{}.png'.format(experiment_full_name,i[0]))
