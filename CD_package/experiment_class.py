@@ -2,16 +2,60 @@ from solver import *
 from ngsolve import *
 from plots_and_more_lib import *
 import netgen.gui
-# Solve (u_t,eps*v_t) = div(A*(u,v)) + (0,-u[1]+u[0]^alpha)
 
-############################### global variables #################################
+############################################################################
+########################## Experiment class info ###########################
+############################################################################
+
+
+# Solves the parabolic-parabolic system
+#
+# (u_t,eps*v_t) = div(A*(u,v)) + f(u,v)
+#
+# for t > 0 on a bounded domain Omega,
+# with source term
+# f(u,v) = (0,-u[1]+u[0]^alpha)
+# and parameters
+# with eps >= 0 and alpha >0.
+
+
+############################################################################
+########################## New features, not implemented ###################
+############################################################################
+# Solve the parabolic-parabolic system
+#
+# (u_t,eps*v_t) = div(A*(u,v)) + f(u,v)
+#
+# for t > 0 on a bounded domain Omega,
+# with source term
+# f(u,v) = p(u,v),
+# with p a polynomial in u and v.
+# and parameters
+# with eps >= 0.
+
+############################################################################
+########################## Functions to log the experiment #################
+############################################################################
+
+
+############################################################################
+########################## Global variables ################################
+############################################################################
+
+
 # subfolder where the simulations will be stored
 filedir ='.'
 simulations_folder = '/simulations_data/'
 path = filedir+simulations_folder
 
+############################################################################
+########################## Class definition ################################
+############################################################################
 
 class experiment():
+    ############################################################################
+    ########################## Class init and file structure ###################
+    ############################################################################
     def __init__(self,expri_name,alpha,delta,epsilon,dt,T,meshsize,order,geometry,visualoutput_solver):
         self.expri_data = {'expri_name': expri_name,'alpha': alpha, 'delta': delta, \
                            'epsilon': epsilon, 'dt': dt,'T': T, 'meshsize': meshsize,'order':order,'geometry': geometry}
@@ -25,7 +69,10 @@ class experiment():
         self.simulations_folder = simulations_folder
         self.path = path
         self.filedir = filedir
-
+    ############################################################################
+    ############### Meshgeneration, Finite element spaces, #####################
+    ###############    initial data and weak formulation   #####################
+    ############################################################################
     def meshgeneration_n_spaces(self):
         meshsize = self.expri_data['meshsize']
         order = self.expri_data['order']
@@ -59,6 +106,9 @@ class experiment():
         gradv = CoefficientFunction( ( grad(v[0]), grad(v[1]) ), dims = (2,2) )
         self.a += SymbolicBFI(u[0]*v[0] + epsilon*u[1]*v[1]+dt*InnerProduct(self.diffusion_matrix*gradu,gradv) + dt*CoefficientFunction( (0,u[1]-u[0].Norm()**alpha) )*CoefficientFunction( (v[0],v[1]) ) - uvold.components[0] * v[0]-epsilon*uvold.components[1]*v[1])
 
+    ############################################################################
+    ########################## Run and solve system  ###########################
+    ############################################################################
     def run_experiment(self):
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
@@ -154,7 +204,11 @@ class experiment():
         finally:
             pass
 
-    def plotseries_and_more(self, netgenrender = True, vtkoutput = False, make_linftyplot = False,scale_factor = 1, plot_modulo = 1,deform_param = 1):
+    ############################################################################
+    ########################## Plot functions ##################################
+    ############################################################################
+
+    def plotseries_and_more(self, netgenrender = True, vtkexport = False, make_linftyplot = False,scale_factor = 1, plot_modulo = 1,deform_param = 1):
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
@@ -229,7 +283,7 @@ class experiment():
                 Linftymin.append(linfmin)
                 Linftymax.append(linfmax)
                 t.append(i[0])
-                if vtk_export == True:
+                if vtkexport == True:
                     vtk = VTKOutput(ma=mesh,coefs=[gfucalc.components[0],gfucalc.components[1]],names=['rho','c'],filename=path_to_expri+'vtk/{}_{}'.format(experiment_full_name,k),subdivision=2)
                     vtk.Do()
             else:
@@ -248,7 +302,7 @@ class experiment():
 
                     # store vertex coorinates in x/y and function value in z array
 
-                    if vtkoutput == True:
+                    if vtkexport == True:
                         vtk = VTKOutput(ma=mesh,coefs=[gfucalc.components[0],gfucalc.components[1]],names=['rho','c'],filename=path_to_expri+'vtk/{}_{}'.format(experiment_full_name,k),subdivision=2)
                         vtk.Do()
                         print('Timestep: {}'.format(i))
@@ -293,7 +347,7 @@ class experiment():
             plt.savefig(path+'Experiments_Linftyplots/{}_endtime_{}.png'.format(experiment_full_name,i[0]))
         plt.close(fig)
 
-    def plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True, matplotlib_export = False, vtk_export = False, scale_factor = 1, plot_modulo = 1,deform_param = 1):
+    def plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True, matplotlib_export = False, vtkexport = False, scale_factor = 1, plot_modulo = 1,deform_param = 1):
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
