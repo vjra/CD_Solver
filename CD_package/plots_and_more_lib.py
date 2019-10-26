@@ -19,13 +19,12 @@ def reorder_timesteps(experiment_name,pathdirect):
     dirlist = sorted(Path(pathdirect).iterdir(), key=lambda f: f.stat().st_mtime)
 #    pattern ='simulations/{}/{}_time_{}'.format(experiment_name,experiment_name,old_timestepping_last_time)
     timelist = []
-    print('expriname: '+experiment_name)
+    print('experiment name: '+experiment_name)
     cutlength = len(pathdirect+'{}_time_'.format(experiment_name))
-    print(cutlength)
-    print(pathdirect+'{}_time_'.format(experiment_name))
+    # print(cutlength)
+    # print(pathdirect+'{}_time_'.format(experiment_name))
     for i in dirlist:
         tempstring = str(i)
-        # pdb.set_trace()
         if tempstring[cutlength-2:] != '':
             timelist.append([float(tempstring[cutlength-2:]),str(i)])
 
