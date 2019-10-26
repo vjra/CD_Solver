@@ -4,13 +4,21 @@ This will be a object-oriented PDE-solver, that allows one to solve a coupled no
 
 ## Installation
 
+# CD_Solver
+
+This will be a object-oriented PDE-solver, that allows one to solve a coupled n$
+
+## Installation
+
 * Install ngsolve by following the instruciton on https://ngsolve.org/.
+* Install matplotlib (https://matplotlib.org/) and pandas (https://pandas.pydat$
 * Clone and change directory to CD_package:
 
 ```sh
 $ git clone https://github.com/vjra/CD_Solver.git
 $ cd CD_package
 ```
+
 ## Introduction
 Generates a experiment object to solve parabolic-parabolic system for $u=(\rho,c) \in \R^2$
 
