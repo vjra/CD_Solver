@@ -10,7 +10,7 @@ Install the ngsolve
 $ git clone https://github.com/vjra/CD_Solver.git
 $ cd CD_package
 ```
-## Usage
+## Introduction
 Generates a experiment object to solve parabolic-parabolic system for $u=(\rho,c) \in \R^2$
 
 $$u_t = \operatorname{div}(A(u) \nabla u) + f(u)$$
@@ -47,4 +47,6 @@ plotseries_and_more(args*): Plots every time step and exports it to vtk. Creates
 
 plot_and_export(args*): Plots specific time steps and exports it to vtk. Creates surfaces plots and exports them to eps.
 
-  
+## Usage
+
+See solve_example.py and plot_example.py for examples to solve and plot an experiment.
