@@ -4,14 +4,11 @@ from plots_and_more_lib import *
 import logging
 import netgen.gui
 
-
-
-
 ############################################################################
 ########################## Experiment class info ###########################
 ############################################################################
 
-# Solves the parabolic-parabolic system for u=(\rho,c) \in \R^2
+# Generates a experiment object to solve parabolic-parabolic system for u=(\rho,c) \in \R^2
 #
 # u_t = div(A(u) \nabla u) + f(u)
 #
@@ -20,6 +17,36 @@ import netgen.gui
 # f(u) = (0,-u[1]+u[0]^alpha)
 # and parameters
 # with eps >= 0 and alpha >0.
+
+# The experiment object builds on the ngsolve library and contains:
+# * the geometry,
+# * the mesh,
+# * the weak formulation of the problem,
+# * Test and Trial functions,
+# * simulation parameters,
+# * finite element space,
+# * initial data for the problem,
+# * solution of the computation as a ngsolve gridfunction.
+
+
+############################################################################
+################### Features to implement ##################################
+############################################################################
+
+# * Implement other source terms.
+# * Implement other geometries.
+# * Use strings to define initial data.
+
+############################################################################
+########################## Issues to fix ###################################
+############################################################################
+
+
+# * netgen plotting in plot_and_export does not work.  and
+# * deformation in plotseries_and_more and plot_and_export still not working
+#   when plotting in netgen.
+# * Streamline which packages to import.
+
 
 ############################################################################
 ########################## Global variables ################################
@@ -40,7 +67,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # create a file handler
-handler = logging.FileHandler('./logs/experiment_class.log', mode='w')
+handler = logging.FileHandler('./logs/experiment_class.log')
+# handler = logging.FileHandler('./logs/experiment_class.log', mode='w')
 handler.setLevel(logging.INFO)
 
 # create a logging format
@@ -55,16 +83,49 @@ logger.addHandler(handler)
 ############################################################################
 
 class experiment():
-    """
+    """ Generates a experiment object to solve parabolic-parabolic system for u=(\rho,c) \in \R^2
 
+    u_t = div(A(u) \nabla u) + f(u)
+
+    for t > 0 on a bounded domain Omega,
+    with source term
+    f(u) = (0,-u[1]+u[0]^alpha)
+    and parameters
+    with eps >= 0 and alpha >0.
+
+    The experiment object builds on the ngsolve library and contains:
+    * the geometry,
+    * the mesh,
+    * the weak formulation of the problem,
+    * Test and Trial functions,
+    * simulation parameters,
+    * finite element space,
+    * initial data for the problem,
+    * solution of the computation as a ngsolve gridfunction.
+
+    Methods
+    -------
+    set_file_structure(args*): Changes file and folder structure of the experiment.
+
+    meshgeneration_n_spaces(): Generates Mesh, trial and test function and finite element spaces.
+
+    set_initial_data(args*): Sets initial data.
+
+    weak_formulation(args*): Sets weak formulation for the problem.
+
+    run_experiment(): Solves problem using solver.py.
+
+    plotseries_and_more(args*): Plots every time step and exports it to vtk. Creates L^\infty plot vs time.
+
+    plot_and_export(args*): Plots specific time steps and exports it to vtk. Creates surfaces plots and exports them to eps.
     """
     ############################################################################
     ########################## Class init and file structure ###################
     ############################################################################
     def __init__(self,experiment_name,alpha,delta,epsilon,dt,T,meshsize,order,geometry,visualoutput_solver):
         """ Initialize object of class experiment.
-            In particular, it sets the name, parameters and filepath
-            for the experiment.
+        In particular, it sets the name, parameters and filepath
+        for the experiment.
 
         Attributes
         ----------
@@ -97,25 +158,7 @@ class experiment():
         path (str): filedir/simulationfolder
         filedir (str): filedir of simulationfolder.
 
-        Methods
-        -------
-        set_file_structure(self,simulations_folder,path,filedir):
 
-        meshgeneration_n_spaces(self):
-
-        set_initial_data(self,ini_data,ini_data_str='No string was entered'):
-
-        weak_formulation(self,diffusion_matrix,source_term=0):
-
-        run_experiment(self):
-
-        plotseries_and_more(self, netgenrender = True, vtkexport = False,
-                            make_linftyplot = False,scale_factor = 1,
-                            plot_modulo = 1,deform_param = 1):
-
-        plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True,
-                            matplotlib_export = False, vtkexport = False, scale_factor = 1,
-                            plot_modulo = 1,deform_param = 1):
         """
         logger.info("Creating experiment object: {}".format(experiment_name))
         self.expri_data = {'experiment_name': experiment_name,'alpha': alpha, 'delta': delta, \
@@ -182,6 +225,13 @@ class experiment():
 
     def set_initial_data(self,ini_data,ini_data_str='No string was entered'):
         """ Set initial data on gridfunction.
+
+        Parameters
+        ----------
+
+        ini_data (ngsolve.fem.CoefficientFunction): Initial data as ngsolve CoefficientFunction.
+        ini_data_str (str): Default 'No string was entered'. Use string to define initial condition.
+
 
         Initializing class variables
         ---------------------------
@@ -394,21 +444,16 @@ class experiment():
     def plotseries_and_more(self, netgenrender = True, vtkexport = False, make_linftyplot = False, \
                             scale_factor = 1, plot_modulo = 1,deform_param = 1):
         """ Plots simulation data in netgen, generates L^\infty plot over time and
-            generates vtk output.
+            generates vtk output. Stops after first time step and waits for conformation to start plotting.
 
         Parameter
         ----------
-
-        experiment_name (str): used in all export or saving file.
-        alpha, delta (float): Free parameters to
-        epsilon (float): Parameter to switch from parabolic-parabolic to parabolic-elliptic modelself.
-        dt (float): time step size.
-        T (float): end time of the simulation.
-        meshsize (float): mesh size.
-        order (float): order of the functions in the finite element space.
-        geometry (str): geometry specification as string.
-        visualoutput_solver (boolean): True starts netgen for plotting during computations.
-
+        netgenrender (boolean): Default True. If True plots functions in netgen.gui.
+        vtkexport (boolean): Default False. If True exports plots to vtk format in vtk folder contained in experiment folder.
+        make_linftyplot (boolean): Default False. If True plots approximation of L^\infty norm and saves it in Experiments_Linftyplots folder.
+        scale_factor (float): Default 1. Sets parameter for scaling of the function in netgen.
+        plot_modulo (int): Default 1. Defines modulo which integer time steps should be plottet. E.g. 2 would mean every second time step is plotted.
+        deform_param (int): Default 1. Sets parameter for deformation of the function in netgen. 1 means surface plot, 0 heat map.
 
         """
         experiment_full_name = self.experiment_full_name
@@ -428,7 +473,12 @@ class experiment():
         meshsize = self.expri_data['meshsize']
         order = self.expri_data['order']
         geometry = self.expri_data['geometry']
+
+        # File and folder management
         path_to_expri = path+experiment_full_name+'/'
+        if os.path.isdir(path_to_expri) == False:
+            raise Exception('No experiment folder found with name {} found.'.format(path_to_expri))
+
         try:
             os.mkdir(path_to_expri+'vtk')
         except Exception as FileExistsError:
@@ -438,8 +488,11 @@ class experiment():
                 print ("Error: %s - %s." % (e.filename, e.strerror))
 
             os.mkdir(path_to_expri+'vtk')
-
+        logger.debug('Reordering timesteps.')
+        # Reordering time steps in chronological order.
         timelist = reorder_timesteps(experiment_full_name,path_to_expri)
+
+        # Loading parameters and initializing linftyplot variables.
         paramdict = opencsvfile(experiment_full_name,path_to_expri)
         Linftymin = []
         Linftymax = []
@@ -448,6 +501,7 @@ class experiment():
 
         for i in timelist:
             if i[0] == 0.0:
+                logger.debug('Load and plot first time step.')
                 gfucalc.Load(str(i[1]))
                 gfuL2.Set(gfucalc.components[0])
                 linfmin_l2 = min(gfuL2.vec)
@@ -457,6 +511,7 @@ class experiment():
 
                 if netgenrender == True:
                     Draw(gfucalc.components[0],mesh,'density')
+                    # deformation and second components plot needs still to be implemented.
                     # visoptions.scalfunction="density"
                     # visoptions.vecfunction = "None"
                     # visoptions.scaledeform1 = scale_factor
@@ -469,6 +524,7 @@ class experiment():
 
                 t.append(i[0])
                 if vtkexport == True:
+                    logger.info('Exporting to VTK format.')
                     vtk = VTKOutput(ma=mesh,coefs=[gfucalc.components[0],gfucalc.components[1]],names=['rho','c'],filename=path_to_expri+'vtk/{}_{}'.format(experiment_full_name,k),subdivision=2)
                     vtk.Do()
             else:
@@ -495,24 +551,26 @@ class experiment():
                     print(i[0])
 
             k += 1
-
-
+        # Use matplotlib to create linfty plot.
+        logger.debug('Plots L^\infty plot.')
         print('Timesteps: {}'.format(t))
         print('L^infty values: {}'.format(Linftymax))
         fig = plt.figure(1)
         plt.subplot(211)
         plt.plot(t,Linftymax)
-        plt.title("Maximumvalues vs Time")
+        plt.title("Maximum value vs Time")
         plt.xlabel("t")
-        plt.ylabel("Maximumvalue of rho")
+        plt.ylabel("Maximum value of rho")
         plt.subplot(212)
         plt.plot(t,Linftymin)
-        plt.title("Minimumvalue vs Time")
+        plt.title("Minimum value vs Time")
         plt.xlabel("t")
-        plt.ylabel("Minimumvalue of rho")
+        plt.ylabel("Minimum value of rho")
+        plt.subplots_adjust(hspace = 0.5)
         z = np.array([t,Linftymax])
         z= np.transpose(z)
         lasttime_plotted = round(T*dt,5)
+        # export it to csv/dat and png file.
         if make_linftyplot == True:
             try:
                 os.mkdir(path+'Experiments_Linftyplots')
@@ -524,6 +582,7 @@ class experiment():
 
                 os.mkdir(path+'Experiments_Linftyplots')
             print('Exporting L^infty plots to png and dat.')
+            logger.info('Exporting L^infty plots to png and dat.')
             df = pd.DataFrame(z, columns = ['t','f(t)'])
             df.to_csv(path+'Experiments_Linftyplots/{}_alpha_{}_delta_{}.dat'.format(experiment_full_name,alpha,delta), index=None, header=None)
             plt.savefig(path+'Experiments_Linftyplots/{}_endtime_{}.png'.format(experiment_full_name,i[0]))
@@ -532,6 +591,22 @@ class experiment():
     def plot_and_export(self, at_times = [0], sol_component = 0,netgenrender = True, \
                         matplotlib_export = False, vtkexport = False, scale_factor = 1, \
                         plot_modulo = 1,deform_param = 1):
+
+        """ Plots simulation data for certain timesteps in netgen and matplotlib.
+        Creates surface plots in matplotlib for these time steps and exports them as .eps in the folder
+        plots inside the experiment folder.
+
+        Parameter
+        ----------
+        at_times (float): Default [0]. Specify time steps to plot.
+        sol_component (int): Default 0. Specify which component to plot, \rho=0, c=1.
+        netgenrender (boolean): Default True. If True plots functions in netgen.gui.
+        vtkexport (boolean): Default False. If True exports plots to vtk format in vtk folder contained in experiment folder.
+        scale_factor (float): Default 1. Sets parameter for scaling of the function in netgen.
+        plot_modulo (int): Default 1. Defines modulo which integer time steps should be plottet. E.g. 2 would mean every second time step is plotted.
+        deform_param (int): Default 1. Sets parameter for deformation of the function in netgen. 1 means surface plot, 0 heat map.
+
+        """
         experiment_full_name = self.experiment_full_name
         mesh = self.mesh
         FEspace = self.FEspace
@@ -554,12 +629,10 @@ class experiment():
         if netgenrender == True:
             import netgen.gui
 
-        print(path_to_expri)
-        print(experiment_full_name)
+        print('Experiment name: ',experiment_full_name)
 
         for i in at_times:
-            print(i)
-            print(path_to_expri+'{}_time_{}'.format(experiment_full_name,i))
+            print('Ploting time: ', i)
             gfucalc.Load(path_to_expri+'{}_time_{}'.format(experiment_full_name,i))
             if netgenrender == True:
                 if sol_component == 0:
@@ -597,7 +670,6 @@ class experiment():
                     y.append(p[1])
                     z.append(gfucalc.components[sol_component].vec[v.nr])
 
-
                 # triangulation
                 for e in mesh.Elements():
                     trigs.append( [v.nr for v in e.vertices] )
@@ -618,11 +690,11 @@ class experiment():
                 # surf.set_edgecolor('black')
                 # x = surf.get_edgecolors()
                 # print(x)
-
+                logger.info('Creating matplotlib surface export to eps.')
                 plt.savefig(path_to_expri+'plots'+'/{}_time_{}.eps'.format(experiment_full_name,round(float(i),5)))
 
-                print('Minimum: {}'.format(linfmin_l2))
-                print('Maximum: {}'.format(linfmax_l2))
+                print('Minimum of first component at time {}: {}'.format(i,linfmin_l2))
+                print('Maximum of first component at time {}: {}'.format(i, linfmax_l2))
                 plt.draw()
                 plt.waitforbuttonpress(0)
                 plt.close(fig)

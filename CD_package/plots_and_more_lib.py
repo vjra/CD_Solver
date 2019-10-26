@@ -25,7 +25,6 @@ def reorder_timesteps(experiment_name,pathdirect):
     # print(pathdirect+'{}_time_'.format(experiment_name))
     for i in dirlist:
         tempstring = str(i)
-        # pdb.set_trace()
         if tempstring[cutlength-2:] != '':
             timelist.append([float(tempstring[cutlength-2:]),str(i)])
 

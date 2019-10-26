@@ -16,9 +16,38 @@ import logging
 
 import pdb
 
+
+############################################################################
+############################# Solver info ##################################
+############################################################################
+
+# Solves a parabolic-parabolic system for u=(\rho,c) \in \R^2
+#
+# u_t = div(A(u) \nabla u) + f(u)
+#
+# for t > 0 on a bounded domain Omega,
+# with source term
+# f(u) = (0,-u[1]+u[0]^alpha)
+# and parameters
+# with eps >= 0 and alpha >0,
+# given the parameters contained in an experiment object.
+
+# It builds on ngsolve and netgen to discretize and formulate the problem. Plotting
+# is done using netgen. Uses a implicit Euler method in time and conforming finite elements in space.
+# To solve nonlinear problems, it employes an Newton scheme (using ngsolves 'AssembleLinearization').
+
+
 ############################################################################
 ########################## New features, not implemented ###################
 ############################################################################
+
+# * Implement modulo save simulation data, i.e. only solve time steps modulo a constant.
+
+############################################################################
+########################## Issues to fix ###################################
+############################################################################
+
+# * Streamline which packages to import.
 
 ############################################################################
 ########################## Logging #########################################
@@ -110,6 +139,7 @@ def continuation_time(experiment_name,path,V,dt,uvold):
 
     return old_timestepping_last_time, uvold
 
+
 def log_file_creator(path,experiment_list):
     """Creates a log file, with date and time when the experiment was started.
     Contains the experiment name and error if occured.
@@ -137,6 +167,7 @@ def log_file_creator(path,experiment_list):
         print(FileExistsError)
 
     return logfilename
+
 
 def paramlist(path,experiment_name,mass,alpha,epsilon,delta,dt,meshsize,order,T,geometry,ini_data_str = ''):
     """Creates a parameter dictionary that contains all parameter set.
@@ -233,9 +264,6 @@ def SimpleNewtonSolve(gfu,a,tol=1e-13,maxits=25):
         print ("<A u",it,", A u",it,">_{-1}^0.5 = ", stopcritval)
         if stopcritval < tol:
             break
-
-
-
 
 
 def run(path,experiment_full_name,uvold,gfucalc,gfuL2,a, \
