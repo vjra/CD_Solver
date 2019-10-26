@@ -4,7 +4,8 @@ This will be a object-oriented PDE-solver, that allows one to solve a coupled no
 
 ## Installation
 
-Install the ngsolve
+* Install ngsolve by following the instruciton on https://ngsolve.org/.
+* Clone and change directory to CD_package:
 
 ```sh
 $ git clone https://github.com/vjra/CD_Solver.git
