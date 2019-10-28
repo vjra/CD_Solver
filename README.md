@@ -2,16 +2,11 @@
 
 This will be a object-oriented PDE-solver, that allows one to solve a coupled nonlinear cross-diffusion system using the finite element software package ngsolve (https://ngsolve.org/). Using implicit Euler in time, finite element in space and Newton to overcoming nonlinearities.
 
-## Installation
-
-# CD_Solver
-
-This will be a object-oriented PDE-solver, that allows one to solve a coupled n$
 
 ## Installation
 
 * Install ngsolve by following the instruciton on https://ngsolve.org/.
-* Install matplotlib (https://matplotlib.org/) and pandas (https://pandas.pydat$
+* Install matplotlib (https://matplotlib.org/) and pandas (https://pandas.pydata.org/)
 * Clone and change directory to CD_package:
 
 ```sh
