@@ -40,21 +40,6 @@ The experiment object builds on the ngsolve library and contains:
 * initial data for the problem,
 * solution of the computation as a ngsolve gridfunction.
 
-Methods
--------
-set_file_structure(args*): Changes file and folder structure of the experiment.
-
-meshgeneration_n_spaces(): Generates Mesh, trial and test function and finite element spaces.
-
-set_initial_data(args*): Sets initial data.
-
-weak_formulation(args*): Sets weak formulation for the problem.
-
-run_experiment(): Solves problem using solver.py.
-
-plotseries_and_more(args*): Plots every time step and exports it to vtk. Creates L^\infty plot vs time.
-
-plot_and_export(args*): Plots specific time steps and exports it to vtk. Creates surfaces plots and exports them to eps.
 
 ## Usage
 
